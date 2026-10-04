@@ -1,18 +1,14 @@
-## AndroidCompiler 0.2 Preview
+# AndroidCompiler 0.2.1 Preview — certificate setup fix
 
-Download **AndroidCompiler.exe** below — no manual ZIP extraction required.
+Fixed the repeated “Certificate was added to keystore” messages during first setup.
+System roots are now prepared by one Java process, with actual certificate counts,
+a 120-second timeout and a verified cache. Partial files from interrupted work are
+not reused. TLS certificate verification and Java security policies stay enabled.
 
-### עברית
+תוקנה הכנת תעודות האבטחה האיטית: פעולה אחת במקום הפעלת Java לכל תעודה.
+כעת מוצגים מספרי תעודות אמיתיים, התוצאה נשמרת לשימוש חוזר וקובץ חלקי אינו משמש
+לבנייה. אין צורך למחוק את כלי Java/SDK או את הפרויקט כדי להתקין עדכון זה.
 
-- ממשק חדש עם סרגל שלבים, כרטיסים וגווני כחול־סגול.
-- כפתור קימפול מגיב גם כשטרם אושר הפרויקט: מוצג חלון אישור ברור.
-- תיקון תזמון: מסך האישור מוצג רק לאחר שמשימת הייבוא הסתיימה.
-- זמן שחלף והודעת המתנה לרשת/כלי, ללא אחוזי קימפול מומצאים.
-- שגיאות בממשק ובתחילת העבודה מוצגות ונשמרות ביומן.
-
-The release workflow runs regression tests on Windows and starts the actual frozen
-EXE in Qt offscreen mode before publishing it. This is not a full interactive
-Windows acceptance test or proof that every Android project builds successfully.
-Android toolchain downloads need internet access and SDK license consent.
-Only build trusted projects: Gradle scripts are not sandboxed.
-The EXE is not Authenticode signed. This remains a Preview.
+Windows regression tests include actual Java trust-store creation, cache reuse,
+corruption recovery and cancellation. The frozen EXE startup is tested before
+publishing. Full manual Windows and project-specific Android tests remain outstanding.

@@ -135,7 +135,7 @@ class Window(QMainWindow):
         self.resultselect=QComboBox();self.resultselect.currentIndexChanged.connect(self.result_changed);b.addWidget(self.resultselect)
         self.resulttext=self.label('');self.resulttext.setTextInteractionFlags(Qt.TextSelectableByMouse);b.addWidget(self.resulttext)
         row=QHBoxLayout();row.addWidget(self.button(self.t('פתח APK','Open APK'),self.open_apk,True));row.addWidget(self.button(self.t('פתח תיקיית Output','Open Output folder'),self.open_output));row.addWidget(self.button(self.t('Build נוסף','Another build'),self.review));row.addWidget(self.button(self.t('פרויקט אחר','New project'),self.go_home));b.addLayout(row);b.addStretch()
-        footer=QHBoxLayout();footer.addWidget(self.label(self.t('מקומי במחשב שלך  ·  נדרש אינטרנט להכנה ראשונית','Local to your computer  ·  Internet needed for first setup'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW 0.2','eyebrow'));layout.addLayout(footer)
+        footer=QHBoxLayout();footer.addWidget(self.label(self.t('מקומי במחשב שלך  ·  נדרש אינטרנט להכנה ראשונית','Local to your computer  ·  Internet needed for first setup'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW 0.2.1','eyebrow'));layout.addLayout(footer)
     def toggle_language(self):
         if self.job and self.job.isRunning():return
         self.he=not self.he;self.draw()
@@ -212,7 +212,7 @@ class Window(QMainWindow):
             with self.logpath.open('a',encoding='utf-8') as f:f.write(text+'\n')
     def stage(self,text):
         self.last_event=time.monotonic()
-        names={'Preparing Java':'מכין Java','Preparing Gradle':'מכין Gradle','Preparing Android SDK':'מכין Android SDK','Checking SDK packages':'בודק רכיבי SDK','Resolving dependencies / compiling':'פותר תלויות ומקמפל','Verifying APK outputs':'מאמת קובצי APK','Build completed':'הבנייה הושלמה','Aligning and signing APK':'מיישר וחותם APK','Creating signing key — keep a backup':'יוצר מפתח חתימה — חשוב לשמור גיבוי','Repairing missing SDK packages; one retry':'משלים רכיבי SDK חסרים ומנסה שוב'}
+        names={'Preparing secure connection certificates':'מכין תעודות אבטחה בפעולה אחת','Preparing Java':'מכין Java','Preparing Gradle':'מכין Gradle','Preparing Android SDK':'מכין Android SDK','Checking SDK packages':'בודק רכיבי SDK','Resolving dependencies / compiling':'פותר תלויות ומקמפל','Verifying APK outputs':'מאמת קובצי APK','Build completed':'הבנייה הושלמה','Aligning and signing APK':'מיישר וחותם APK','Creating signing key — keep a backup':'יוצר מפתח חתימה — חשוב לשמור גיבוי','Repairing missing SDK packages; one retry':'משלים רכיבי SDK חסרים ומנסה שוב'}
         text=names.get(text,text) if self.he else text
         self.current.setText(text);self.activity.appendPlainText('• '+text)
     def job_done(self):self.lang.setEnabled(True);self.cancelbutton.setEnabled(False)
