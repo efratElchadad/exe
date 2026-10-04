@@ -8,7 +8,7 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 & $python -m pytest -q
 if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
 Remove-Item Env:QT_QPA_PLATFORM
-& $python -m PyInstaller --noconfirm --clean --windowed --onedir --name AndroidCompiler --collect-data PySide6 main.py
+& $python -m PyInstaller --noconfirm --clean --windowed --onedir --name AndroidCompiler --icon androidcompiler/assets/app.ico --add-data "androidcompiler/assets;androidcompiler/assets" --collect-data PySide6 main.py
 if ($LASTEXITCODE -ne 0) { throw 'EXE packaging failed' }
 Copy-Item README-HE.md,THIRD-PARTY.md,TEST-REPORT.md,LICENSE dist\AndroidCompiler
 Copy-Item -Recurse LICENSES,sample dist\AndroidCompiler

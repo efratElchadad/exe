@@ -4,12 +4,15 @@ from .guide import GUIDE_HE, GUIDE_EN, CREDIT_URL
 from .logview import LogPanel
 from pathlib import Path
 from PySide6.QtCore import Qt, QThread, Signal, QUrl, QStandardPaths, QLockFile, QTimer
-from PySide6.QtGui import QDesktopServices, QFont, QColor
+from PySide6.QtGui import QDesktopServices, QFont, QColor, QIcon, QPixmap
 from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QFileDialog,QStackedWidget,QFrame,QComboBox,QFormLayout,QCheckBox,QProgressBar,QPlainTextEdit,QMessageBox,QDialog,QDialogButtonBox,QLineEdit,QScrollArea,QTextBrowser)
 from .project import Workspace
 from .runtime import Runner, Cancelled, explain
 from .build import BuildManager, Signing
 from .desktop import DesktopBuilder,analyze_desktop
+
+ASSETS=Path(__file__).resolve().parent/'assets'
+VERSION='0.4.1'
 
 STYLE="""
 QToolTip {background:#213750;color:#ffffff;border:1px solid #4bddce;padding:8px;}
@@ -79,7 +82,7 @@ class Window(QMainWindow):
     def __init__(self,base=None):
         super().__init__();self.he=True;self.job=None;self.workspace=None;self.project=None;self.results=[];self.logpath=None
         self.base=Path(base or QStandardPaths.writableLocation(QStandardPaths.AppLocalDataLocation));self.base.mkdir(parents=True,exist_ok=True)
-        self.setWindowTitle('AndroidCompiler · Android build studio');self.resize(1250,900);self.setMinimumSize(1000,780)
+        self.setWindowIcon(QIcon(str(ASSETS/'app.ico')));self.setWindowTitle('AndroidCompiler · Android build studio');self.resize(1250,900);self.setMinimumSize(1000,780)
         self.started_at=0;self.last_event=0;self.output_root=self.base/'Output'
         self.clock=QTimer(self);self.clock.setInterval(1000);self.clock.timeout.connect(self.tick)
         self.draw()
@@ -101,13 +104,14 @@ class Window(QMainWindow):
         self.setLayoutDirection(Qt.RightToLeft if self.he else Qt.LeftToRight)
         shell=QWidget();self.setCentralWidget(shell);outer=QHBoxLayout(shell);outer.setContentsMargins(22,22,22,22);outer.setSpacing(28)
         side=QFrame();side.setObjectName('sidebar');side.setFixedWidth(205);sb=QVBoxLayout(side);sb.setContentsMargins(16,25,16,22);sb.setSpacing(12)
-        sb.addWidget(self.label('AC / STUDIO','brand'));sb.addWidget(self.label('ANDROID COMPILER','eyebrow'));sb.addSpacing(30)
+        logo=QLabel();logo.setObjectName('brandLogo');logo.setAlignment(Qt.AlignCenter);logo.setPixmap(QPixmap(str(ASSETS/'app.png')).scaled(160,160,Qt.KeepAspectRatio,Qt.SmoothTransformation));logo.setAccessibleName('AndroidCompiler');sb.addWidget(logo)
+        sb.addWidget(self.label('ANDROID COMPILER','eyebrow'));sb.addSpacing(30)
         self.steps=[]
         for title in [self.t('01   בחירת פרויקט','01   Import project'),self.t('02   בדיקה ואישור','02   Review & confirm'),self.t('03   קימפול','03   Build'),self.t('04   תוצרים','04   Output')]:
             label=self.label(title,'step');sb.addWidget(label);self.steps.append(label)
         sb.addStretch();sb.addWidget(self.label('LOCAL BUILD ENGINE','eyebrow'));sb.addWidget(self.label(self.t('הכלים מנוהלים כאן.\nאתה בוחר מה לבנות.','Your tools, managed.\nYour project, ready.'),'subtitle'))
         outer.addWidget(side);content=QWidget();outer.addWidget(content,1);layout=QVBoxLayout(content);layout.setContentsMargins(0,0,0,0);layout.setSpacing(18)
-        top=QHBoxLayout();brand=self.label('◈  AndroidCompiler','brand');brand.setLayoutDirection(Qt.LeftToRight);brand.setWordWrap(False);top.addWidget(brand);top.addStretch()
+        top=QHBoxLayout();header_logo=QLabel();header_logo.setPixmap(QPixmap(str(ASSETS/'app.png')).scaled(44,44,Qt.KeepAspectRatio,Qt.SmoothTransformation));header_logo.setAccessibleName('AndroidCompiler logo');top.addWidget(header_logo);brand=self.label('AndroidCompiler','brand');brand.setLayoutDirection(Qt.LeftToRight);brand.setWordWrap(False);top.addWidget(brand);top.addStretch()
         self.lang=self.button('English' if self.he else 'עברית',self.toggle_language);top.addWidget(self.lang);top.addWidget(self.button(self.t('מדריך ועזרה','Guide & help'),self.show_guide))
         layout.addLayout(top)
         self.stack=QStackedWidget();self.stack.currentChanged.connect(self.mark_step);layout.addWidget(self.stack,1)
@@ -143,7 +147,7 @@ class Window(QMainWindow):
         self.resultselect=QComboBox();self.resultselect.currentIndexChanged.connect(self.result_changed);b.addWidget(self.resultselect)
         self.resulttext=self.label('');self.resulttext.setTextInteractionFlags(Qt.TextSelectableByMouse);b.addWidget(self.resulttext)
         row=QHBoxLayout();row.addWidget(self.button(self.t('פתח קובץ','Open file'),self.open_apk,True));row.addWidget(self.button(self.t('פתח תיקיית תוצרים','Open output folder'),self.open_output));row.addWidget(self.button(self.t('Build נוסף','Another build'),self.review));row.addWidget(self.button(self.t('פרויקט אחר','New project'),self.go_home));b.addLayout(row);b.addStretch()
-        footer=QHBoxLayout();footer.addWidget(self.label(self.t('מקומי במחשב שלך  ·  נדרש אינטרנט להכנה ראשונית','Local to your computer  ·  Internet needed for first setup'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW 0.4.0','eyebrow'));layout.addLayout(footer)
+        footer=QHBoxLayout();footer.addWidget(self.label(self.t('מקומי במחשב שלך  ·  נדרש אינטרנט להכנה ראשונית','Local to your computer  ·  Internet needed for first setup'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW '+VERSION,'eyebrow'));layout.addLayout(footer)
         credit=self.button(self.t('קרדיט: מוקד המערכות · מתמחים טופ ↗','Credit: Moked Hama’arachot · Mitmachim Top ↗'),self.open_credit);credit.setObjectName('quiet');layout.addWidget(credit)
         self.apply_hints()
     def open_credit(self):
@@ -356,7 +360,10 @@ class Window(QMainWindow):
         event.accept()
 
 def main():
-    app=QApplication(sys.argv);app.setApplicationName('AndroidCompiler');app.setOrganizationName('AndroidCompiler');app.setStyleSheet(STYLE)
+    if os.name=='nt':
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('AndroidCompiler.Desktop')
+    app=QApplication(sys.argv);app.setWindowIcon(QIcon(str(ASSETS/'app.ico')));app.setApplicationName('AndroidCompiler');app.setOrganizationName('AndroidCompiler');app.setStyleSheet(STYLE)
     base=Path(QStandardPaths.writableLocation(QStandardPaths.AppLocalDataLocation));base.mkdir(parents=True,exist_ok=True)
     lock=QLockFile(str(base/'app.lock'));lock.setStaleLockTime(0)
     if not lock.tryLock(100):

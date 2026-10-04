@@ -33,7 +33,7 @@ jobs:
           PYTHONPATH: .
         run: python packaging/test_desktop_windows.py
       - name: Create single-file Windows EXE
-        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --paths . --name AndroidCompiler --add-data "LICENSES;LICENSES" --add-data "THIRD-PARTY.md;." packaging/entry.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --paths . --name AndroidCompiler --icon androidcompiler/assets/app.ico --add-data "androidcompiler/assets;androidcompiler/assets" --add-data "LICENSES;LICENSES" --add-data "THIRD-PARTY.md;." packaging/entry.py
       - name: Start the actual EXE and verify its window
         shell: pwsh
         run: |
@@ -41,7 +41,7 @@ jobs:
           if (-not $app.WaitForExit(90000)) { $app.Kill(); throw 'EXE startup timed out' }
           if ($app.ExitCode -ne 0) { throw "EXE returned $($app.ExitCode)" }
           $result = Get-Content smoke-test.json -Raw | ConvertFrom-Json
-          if (-not $result.opened -or -not $result.frozen) { throw 'EXE smoke test failed' }
+          if (-not $result.opened -or -not $result.frozen -or -not $result.icon_loaded) { throw 'EXE smoke test failed' }
           Get-FileHash dist/AndroidCompiler.exe -Algorithm SHA256 | Format-List | Out-File dist/SHA256.txt
       - uses: actions/upload-artifact@v4
         with:
@@ -56,5 +56,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v0.4.0-preview.${{ github.run_number }}" dist/AndroidCompiler.exe dist/SHA256.txt --target "${{ github.sha }}" --title "AndroidCompiler 0.4.0 Preview" --prerelease --notes-file RELEASE-NOTES.md
+          gh release create "v0.4.1-preview.${{ github.run_number }}" dist/AndroidCompiler.exe dist/SHA256.txt --target "${{ github.sha }}" --title "AndroidCompiler 0.4.1 Preview" --prerelease --notes-file RELEASE-NOTES.md
           if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
