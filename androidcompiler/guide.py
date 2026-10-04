@@ -93,3 +93,22 @@ Python uses managed Python 3.12, requirements.txt and an installable pyproject.t
 .NET supports SDK-style csproj targeting a single net8.0, net9.0 or net10.0, optionally -windows. A private SDK is selected using the target/global.json and publishes self-contained Windows x64. Legacy Framework, MAUI, NativeAOT and special workloads are not automatically supported.
 Open file runs EXEs. Outputs have no publisher signature; retain companion files. This builds source projects, not conversions of existing APKs/EXEs.
 """
+
+GUIDE_HE += """
+## בנייה ל־Mac בענן
+בחר Python → Mac או C#/.NET → Mac, ייבא את קוד המקור ובחר Apple Silicon או Intel ותיקיית יעד. לאחר אישור Build יופיע אישור נפרד להעלאת כל עותק הפרויקט למאגר GitHub פרטי. צריך להזין בתוכנה אסימון classic עם הרשאות repo ו־workflow; הוא אינו נשמר בהגדרות ואינו נשלח לשרת הבנייה. מאגר פרטי נוצר אם השם פנוי בחשבונך. מאגר ציבורי יידחה.
+
+הקוד נשאר בהיסטוריית המאגר עד למחיקתו ב־GitHub. בדוק קבצים סודיים לפני האישור. הבנייה משתמשת במכסת GitHub Actions שלך ועלולה להיות בתשלום לפי הגדרות החשבון. התמיכה כרגע עד 25 MiB לארכיון המקור.
+
+היישום מציג את שלבי GitHub האמיתיים. הפלט המפורט נמצא בקישור Actions שנרשם ביומן; אין הזרמת כל שורת פלט בזמן אמת במסלול הענן. ביטול מבקש לבטל את המשימה מרחוק; אם האישור נכשל או שאין עדיין מזהה משימה יש לבדוק את Actions ידנית.
+
+בסיום יורד DMG לתיקיית היעד. פותחים אותו ב־Mac ולא ב־Windows. Python נארז ל־app; קובץ spec צריך להגדיר BUNDLE מתאים ל־Mac. .NET מייצר תוכנת macOS עצמאית; ממשק גרפי תלוי במסגרת שבפרויקט. WPF/WinForms, יעד windows ו־MAUI אינם נתמכים אוטומטית. יעד יחיד net8.0/net9.0/net10.0 נדרש ל־.NET.
+
+אין חתימת Developer ID או Apple Notarization. לכן המוצר אינו חבילת הפצה מאומתת של Apple. בנייה מוצלחת אינה מבטיחה שכל פונקציה בפרויקט תואמת ל־Mac. קובצי APK ו־EXE ממשיכים להיבנות מקומית.
+"""
+GUIDE_EN += """
+## Mac cloud builds
+Choose Python → Mac or C#/.NET → Mac, select Intel/Apple Silicon and an output folder. A separate dialog requires explicit source-upload consent and a classic GitHub token with repo/workflow scopes. Enter the token in the app, never in chat; it is used in memory and is not sent to the build runner. The private repository is created if missing; public repositories are rejected. Source stays in Git history until repository deletion. Inspect source for secrets before upload. GitHub Actions quotas and charges apply. Source ZIP limit: 25 MiB.
+Live GitHub step status is shown; full command logs are available via the Actions URL in the log, not streamed line-by-line. Cancel requests remote cancellation; if unconfirmed, check Actions manually.
+The output is a DMG to open on macOS. Python produces an app bundle (custom specs need BUNDLE). .NET produces a self-contained macOS program, not an automatically generated GUI; WPF/WinForms, Windows targets and MAUI are not supported. Single net8.0/net9.0/net10.0 targets only. No Developer ID signature or Apple notarization is included. Successful compilation does not guarantee all project functions work on Mac. APK/EXE builds remain local.
+"""

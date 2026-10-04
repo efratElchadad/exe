@@ -9,7 +9,23 @@ concurrency:
   group: windows-preview
   cancel-in-progress: false
 jobs:
+  mac_verify:
+    strategy:
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: python packaging/test_mac.py
   windows:
+    needs: mac_verify
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -33,7 +49,7 @@ jobs:
           PYTHONPATH: .
         run: python packaging/test_desktop_windows.py
       - name: Create single-file Windows EXE
-        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --paths . --name AndroidCompiler --icon androidcompiler/assets/app.ico --add-data "androidcompiler/assets;androidcompiler/assets" --add-data "LICENSES;LICENSES" --add-data "THIRD-PARTY.md;." packaging/entry.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --paths . --name AndroidCompiler --add-data "androidcompiler/mac_worker.py;androidcompiler" --icon androidcompiler/assets/app.ico --add-data "androidcompiler/assets;androidcompiler/assets" --add-data "LICENSES;LICENSES" --add-data "THIRD-PARTY.md;." packaging/entry.py
       - name: Start the actual EXE and verify its window
         shell: pwsh
         run: |
@@ -56,5 +72,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v0.4.1-preview.${{ github.run_number }}" dist/AndroidCompiler.exe dist/SHA256.txt --target "${{ github.sha }}" --title "AndroidCompiler 0.4.1 Preview" --prerelease --notes-file RELEASE-NOTES.md
+          gh release create "v0.5.0-preview.${{ github.run_number }}" dist/AndroidCompiler.exe dist/SHA256.txt --target "${{ github.sha }}" --title "AndroidCompiler 0.5.0 Preview" --prerelease --notes-file RELEASE-NOTES.md
           if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }

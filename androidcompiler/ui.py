@@ -10,9 +10,10 @@ from .project import Workspace
 from .runtime import Runner, Cancelled, explain
 from .build import BuildManager, Signing
 from .desktop import DesktopBuilder,analyze_desktop
+from .mac_cloud import MacCloud
 
 ASSETS=Path(__file__).resolve().parent/'assets'
-VERSION='0.4.1'
+VERSION='0.5.0'
 
 STYLE="""
 QToolTip {background:#213750;color:#ffffff;border:1px solid #4bddce;padding:8px;}
@@ -116,7 +117,7 @@ class Window(QMainWindow):
         layout.addLayout(top)
         self.stack=QStackedWidget();self.stack.currentChanged.connect(self.mark_step);layout.addWidget(self.stack,1)
         _,b=self.page('ANDROID BUILD STUDIO',self.t('מהקוד שלך — לאפליקציה','From your code to an application'),self.t('סביבת קימפול פרטית. הכלים מוכנים עבורך, בלי Android Studio.','A managed build environment. No Android Studio required.'))
-        self.target=QComboBox();self.target.addItems(['Android → APK','Python → EXE','C# / .NET → EXE']);self.target.setToolTip(self.t('בחר את סוג קוד המקור לפני הייבוא. אין המרת APK או EXE קיימים.','Select the source project type before import. Existing APK/EXE conversion is not supported.'));b.addWidget(self.target)
+        self.target=QComboBox();self.target.addItems(['Android → APK','Python → EXE','C# / .NET → EXE','Python → Mac (Cloud)','C# / .NET → Mac (Cloud)']);self.target.setToolTip(self.t('בחר את סוג קוד המקור לפני הייבוא. אין המרת APK או EXE קיימים.','Select the source project type before import. Existing APK/EXE conversion is not supported.'));b.addWidget(self.target)
         self.drop=DropZone(self.t('גרור לכאן פרויקט מקור','Drop a source project here'),self.t('תיקיית פרויקט או קובץ ZIP','Project folder or ZIP archive'));self.drop.chosen.connect(self.import_path);b.addWidget(self.drop)
         row=QHBoxLayout();row.addStretch();row.addWidget(self.button(self.t('בחר תיקייה','Choose folder'),self.choose_folder,True));row.addWidget(self.button(self.t('בחר ZIP','Choose ZIP'),self.choose_zip));row.addStretch();b.addLayout(row)
         metrics=QHBoxLayout()
@@ -131,6 +132,7 @@ class Window(QMainWindow):
             label=self.label('—');label.setLayoutDirection(Qt.LeftToRight);self.fields[key]=label;form.addRow(title,label)
         self.kind=QComboBox();self.kind.addItems(['Debug','Release']);form.addRow('Build type',self.kind);b.addWidget(card)
         destrow=QHBoxLayout();self.destination=QLineEdit(str(self.output_root));self.destination.setReadOnly(True);self.destination.setLayoutDirection(Qt.LeftToRight);destrow.addWidget(self.destination,1);destrow.addWidget(self.button(self.t('בחר תיקיית יעד','Choose output folder'),self.choose_output));b.addLayout(destrow)
+        self.macarch=QComboBox();self.macarch.addItems(['Apple Silicon (M1/M2/M3/M4) · arm64','Intel · x64']);self.macarch.hide();b.addWidget(self.macarch)
         self.windowed=QCheckBox(self.t('EXE ללא חלון קונסולה (Python בלבד)','Hide console window (Python only)'));b.addWidget(self.windowed)
         self.warnings=self.label('','subtitle');b.addWidget(self.warnings)
         self.trust=QCheckBox(self.t('אני סומך על הפרויקט ומאשר הרצת קוד Build.','I trust this project and allow its build scripts to execute on this computer.'));b.addWidget(self.trust)
@@ -147,7 +149,7 @@ class Window(QMainWindow):
         self.resultselect=QComboBox();self.resultselect.currentIndexChanged.connect(self.result_changed);b.addWidget(self.resultselect)
         self.resulttext=self.label('');self.resulttext.setTextInteractionFlags(Qt.TextSelectableByMouse);b.addWidget(self.resulttext)
         row=QHBoxLayout();row.addWidget(self.button(self.t('פתח קובץ','Open file'),self.open_apk,True));row.addWidget(self.button(self.t('פתח תיקיית תוצרים','Open output folder'),self.open_output));row.addWidget(self.button(self.t('Build נוסף','Another build'),self.review));row.addWidget(self.button(self.t('פרויקט אחר','New project'),self.go_home));b.addLayout(row);b.addStretch()
-        footer=QHBoxLayout();footer.addWidget(self.label(self.t('מקומי במחשב שלך  ·  נדרש אינטרנט להכנה ראשונית','Local to your computer  ·  Internet needed for first setup'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW '+VERSION,'eyebrow'));layout.addLayout(footer)
+        footer=QHBoxLayout();footer.addWidget(self.label(self.t('APK / EXE מקומי · Mac בענן, לאחר אישור','APK / EXE local · Mac in the cloud, with consent'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW '+VERSION,'eyebrow'));layout.addLayout(footer)
         credit=self.button(self.t('קרדיט: מוקד המערכות · מתמחים טופ ↗','Credit: Moked Hama’arachot · Mitmachim Top ↗'),self.open_credit);credit.setObjectName('quiet');layout.addWidget(credit)
         self.apply_hints()
     def open_credit(self):
@@ -195,11 +197,12 @@ class Window(QMainWindow):
         if self.job and self.job.isRunning():return
         if self.workspace:self.workspace.close();self.workspace=None;self.project=None
         self.busy(self.t('מייבא ומנתח את הפרויקט','Importing and analyzing project'))
-        engine=['android','python','dotnet'][self.target.currentIndex()]
+        target_index=self.target.currentIndex();engine=['android','python','dotnet','python','dotnet'][target_index]
         def work(job):
             w=Workspace(self.base/'workspaces')
             try:
                 project=w.import_project(Path(path),None if engine=='android' else lambda source,workspace:analyze_desktop(source,workspace,engine))
+                if target_index>=3:project.mac_cloud=True
                 if engine!='android' and project.name=='source':project.name=Path(path).stem if Path(path).is_file() else Path(path).name
                 return w,project
             except Exception:w.close();raise
@@ -211,7 +214,8 @@ class Window(QMainWindow):
         self.modules.addItems([m.name for m in self.project.modules]);self.modules.blockSignals(False)
         desktop=hasattr(self.project,'engine')
         for key in ('application_id','min_sdk','version','java'):self.project_form.setRowVisible(self.fields[key],not desktop)
-        self.sign.setVisible(not desktop);self.sign.setChecked(False);self.windowed.setVisible(desktop and self.project.engine=='python');self.windowed.setChecked(False)
+        self.sign.setVisible(not desktop);self.sign.setChecked(False);self.windowed.setVisible(desktop and self.project.engine=='python' and not getattr(self.project,'mac_cloud',False));self.windowed.setChecked(False)
+        self.macarch.setVisible(getattr(self.project,'mac_cloud',False))
         self.kind.setCurrentText('Release' if desktop else 'Debug')
         self.project_label.setText(self.project.name);self.module_changed(0)
         translations={
@@ -220,6 +224,7 @@ class Window(QMainWindow):
             'Composite build detected; included builds can execute additional code.':'זוהה פרויקט הכולל פרויקטי Build נוספים, שגם בהם יכול לרוץ קוד.',
             'Node/React Native projects need additional tooling and are not supported automatically.':'פרויקטי Node / React Native דורשים כלים נוספים ואינם נתמכים אוטומטית.'}
         translations['Windows x64 EXE · Python 3.12 / SDK-style .NET 8–10. Build scripts and dependency installers execute with your permissions.']='EXE ל־Windows x64 · Python 3.12 או ‎.NET 8–10. סקריפטים והתקנת תלויות יפעלו בהרשאות שלך.'
+        if getattr(self.project,'mac_cloud',False):self.project.warnings=[self.t('בנייה מרוחקת ב־Mac: נדרש GitHub פרטי. הקוד יועלה רק לאחר אישור. תוצר ללא אימות Apple.','Remote Mac build: private GitHub required. Upload requires confirmation. Output is not Apple-notarized.')]
         self.warnings.setText('\n'.join(translations.get(x,x) if self.he else x for x in self.project.warnings));self.trust.setChecked(False);self.stack.setCurrentIndex(1)
     def module_changed(self,index):
         if not self.project or index<0:return
@@ -287,17 +292,34 @@ class Window(QMainWindow):
         probe=self.output_root/('.write-check-'+uuid.uuid4().hex)
         try:probe.write_bytes(b'')
         finally:probe.unlink(missing_ok=True)
+        cloud=None
+        if getattr(self.project,'mac_cloud',False):
+            cloud=self.cloud_dialog()
+            if cloud is None:return
         signing=None
         if self.kind.currentText()=='Release' and self.sign.isChecked():
             signing=self.sign_dialog()
             if signing is None:return
-        kind=self.kind.currentText();module=self.project.modules[self.modules.currentIndex()];output=self.output_root;windowed=self.windowed.isChecked()
+        kind=self.kind.currentText();module=self.project.modules[self.modules.currentIndex()];output=self.output_root;windowed=self.windowed.isChecked();arch=['arm64','x64'][self.macarch.currentIndex()]
         self.busy(self.t('מכין סביבת Build','Preparing build environment'))
         def work(job):
             runner=Runner(job.line.emit,job.stage.emit,job.cancel)
+            if cloud:return MacCloud(self.base,runner,*cloud).build(self.project,module,kind,output,arch)
             if hasattr(self.project,'engine'):return DesktopBuilder(self.base,runner).build(self.project,module,kind,output,windowed)
             return BuildManager(self.base,runner,job.consent).build(self.project,module,kind,signing,output_root=output)
         self.launch(work,self.completed)
+    def cloud_dialog(self):
+        dlg=QDialog(self);dlg.setWindowTitle(self.t('אישור העלאה ובנייה ב־Mac','Approve source upload and Mac build'));dlg.resize(700,540);form=QFormLayout(dlg)
+        form.addRow(self.label(self.t('כל קבצי עותק הפרויקט יועלו למאגר GitHub פרטי בחשבון שלך. הקוד נשאר בהיסטוריית GitHub גם לאחר הבנייה, עד למחיקת המאגר. בדוק שאין בפרויקט סיסמאות או קבצים פרטיים שאינך רוצה להעלות.','All files in the working copy will be uploaded to a private repository in your account. Source remains in GitHub history until you delete the repository. Check for secrets or files you do not want uploaded.')))
+        form.addRow(self.label(self.t('נדרש Personal Access Token מסוג classic עם הרשאות repo ו־workflow. יש להזין רק כאן, לא בצ׳אט. הוא נשמר בזיכרון למשימה בלבד. נדרש חשבון GitHub עם Actions פעיל ומכסת דקות זמינה; שימוש מעבר למכסה עשוי לעלות כסף לפי הגדרות החשבון.','Enter a classic Personal Access Token with repo and workflow scopes here, never in chat. It stays in memory for this job only. GitHub Actions must be enabled with available quota; usage may incur charges under your account settings.')))
+        form.addRow(self.button(self.t('פתח יצירת אסימון ב־GitHub','Open GitHub token settings'),lambda:QDesktopServices.openUrl(QUrl('https://github.com/settings/tokens/new'))))
+        repo=QLineEdit('androidcompiler-macos-builds');token=QLineEdit();token.setEchoMode(QLineEdit.Password);form.addRow(self.t('שם מאגר פרטי (ייווצר אם חסר)','Private repository name (created if missing)'),repo);form.addRow('GitHub token',token)
+        consent=QCheckBox(self.t('אני מאשר העלאת הקוד והרצת הבנייה בחשבון GitHub שלי','I approve uploading the source and running the build in my GitHub account'));form.addRow(consent)
+        buttons=QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel);buttons.button(QDialogButtonBox.Ok).setEnabled(False)
+        def validate():buttons.button(QDialogButtonBox.Ok).setEnabled(consent.isChecked() and bool(token.text().strip()) and bool(repo.text().strip()))
+        token.textChanged.connect(validate);repo.textChanged.connect(validate);consent.toggled.connect(validate);buttons.accepted.connect(dlg.accept);buttons.rejected.connect(dlg.reject);form.addRow(buttons)
+        if dlg.exec()!=QDialog.Accepted:return None
+        credentials=(token.text().strip(),repo.text().strip());token.clear();return credentials
     def license_dialog(self,text):
         dlg=QDialog(self);dlg.setWindowTitle(self.t('תנאי שימוש ב־Android SDK','Android SDK license terms'));dlg.resize(850,640)
         box=QVBoxLayout(dlg);box.addWidget(self.label(self.t('יש לקרוא ולאשר את תנאי הספק כדי להתקין את הכלים.','Read and accept the supplier terms to install the tools.')))
@@ -327,6 +349,8 @@ class Window(QMainWindow):
     def result_changed(self,index):
         if index<0 or index>=len(self.results):return
         r=self.results[index]
+        if r['type']=='Mac':
+            self.resulttext.setText(f"{r['name']}\n\nmacOS · {r['engine']} · {r['variant']}\n{r['bytes']/1024**2:.2f} MiB\n\n{r['path']}\n\n"+self.t('פתח את ה־DMG במחשב Mac. התוצר אינו חתום ב־Developer ID ואינו מאומת ב־Apple. יישום Windows אינו ניתן להרצה אוטומטית ב־Mac.','Open the DMG on a Mac. No Developer ID signing or Apple notarization. Windows-only applications are not automatically portable.'));return
         if r['type']=='EXE':
             self.resulttext.setText(f"{r['name']}\n\nWindows x64 · {r['engine']} · {r['variant']}\n{r['bytes']/1024**2:.2f} MiB\n\n{r['path']}\n\n"+self.t('EXE ללא חתימת מפרסם. אם נוצרו קבצים נלווים, יש לשמור את תיקיית התוצרים בשלמותה.','EXE has no publisher signature. Keep all companion output files together.'));return
         signature=self.t('חתום','Signed') if r['signed'] else self.t('לא חתום — נדרשת חתימה לפני התקנה','UNSIGNED — sign before installing')

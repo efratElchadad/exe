@@ -1,8 +1,10 @@
-# AndroidCompiler 0.4.1 Preview
+# AndroidCompiler 0.5.0 Preview
 
-- Added the supplied AndroidCompiler artwork as the Windows executable icon, window/taskbar icon, header logo and sidebar logo.
-- Multi-resolution ICO includes 16–256 pixel sizes. Original PNG is bundled for the interface.
-- The packaged EXE startup gate checks that the window icon and sidebar logo load from the bundle.
-- Includes APK/Python EXE/.NET EXE builds and output folder selection from 0.4.0.
-
-Close the previous version and run AndroidCompiler.exe. No toolchain reinstall is required.
+- Optional macOS cloud builds for Python and cross-platform SDK-style .NET projects.
+- Select Apple Silicon or Intel; download the resulting DMG into your chosen output directory.
+- Explicit upload confirmation; private user-owned GitHub repository required, public repositories rejected.
+- A classic GitHub token with repo/workflow permissions is entered per job, never saved to preferences or passed to runners.
+- Source remains in private Git history. Actions quotas/charges apply. 25 MiB compressed-source limit.
+- Real remote step status and Actions log link; no line-by-line remote log streaming.
+- No Apple Developer ID signing or notarization. Windows-specific frameworks are not portable. .NET output is a macOS executable, not an automatically generated app GUI.
+- APK and EXE continue to build locally.
