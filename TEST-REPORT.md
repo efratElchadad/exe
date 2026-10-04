@@ -72,3 +72,14 @@ Qt offscreen renders, **not screenshots of a verified Windows installation**.
 
 ## 0.3.0 verification
 27 tests passed locally and on Windows CI run 37209661322. New checks cover filtered display versus complete log persistence, clipboard, UTF-8 export, bounded log retention and credit URL dispatch. The built Windows EXE passed its offscreen startup gate. The Hebrew guide was opened and rendered locally. This update did not rerun an end-to-end Android APK build; the build engine is unchanged. A user reported a successful build on the preceding version.
+
+
+## 0.4.0 verification
+- 30 regression tests passed locally and in Windows CI run 37238245986.
+- Real managed Python (downloaded NuGet CPython 3.12.10, verified SHA512) created a venv, installed PyInstaller, built an EXE into a chosen folder containing spaces, and the EXE executed with the expected output.
+- Real managed .NET SDK (official metadata/SHA512) published a self-contained Windows x64 EXE into the chosen folder and the EXE executed with the expected output.
+- Deliberately invalid Python and C# both failed; failed output directories were removed and successful earlier outputs were retained.
+- UI regression covers Python project review, entry-point selection, output folder selection and preservation during language switch.
+- Earlier CI run 37238079303 built the Python EXE but its test compared a Windows short pathname to a canonical pathname. The test now canonicalizes its temporary root before comparison.
+- The existing APK engine now accepts output_root; this update did not rerun an Android SDK/Gradle end-to-end build. Earlier Android build evidence remains documented above.
+- Manual Explorer drag/drop and arbitrary third-party desktop projects are not covered by these tests.
