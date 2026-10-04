@@ -26,7 +26,7 @@ def test_drag_folder_review_logs(tmp_path):
     QApplication.sendEvent(w.drop,drop);wait_job(w)
     assert w.stack.currentIndex()==1 and w.modules.currentText()==':app'
     assert w.start.isEnabled();assert not w.trust.isChecked();w.trust.setChecked(True)
-    w.busy('Test');w.log('actual output');assert 'actual output' in w.logpath.read_text()
+    w.busy('Test');w.log('actual output');assert 'actual output' in w.logpath.read_text(encoding="utf-8")
     w.failed('Compilation failed');assert w.retry.isVisible()
     w.review();assert w.stack.currentIndex()==1
     w.close()
@@ -52,7 +52,7 @@ def test_output_actions_dispatch_exact_paths(tmp_path,monkeypatch):
     w=Window(tmp_path/'app');apk=tmp_path/'Output/sample.apk';apk.parent.mkdir();apk.write_bytes(b'not used as build evidence')
     w.results=[{'path':str(apk)}]
     w.open_output();w.open_apk()
-    assert paths==[str(apk.parent),str(apk)]
+    assert [Path(value) for value in paths]==[apk.parent,apk]
     w.close()
 
 def test_click_requests_trust_and_explains_decline(tmp_path,monkeypatch):
@@ -81,7 +81,7 @@ def test_click_reaches_engine_and_shows_failure(tmp_path,monkeypatch):
     assert w.stack.currentIndex()==2
     wait_job(w)
     assert reached and 'REGRESSION' in w.logs.toPlainText()
-    assert 'REGRESSION' in w.logpath.read_text()
+    assert 'REGRESSION' in w.logpath.read_text(encoding="utf-8")
     assert w.retry.isVisible() and not w.clock.isActive()
     w.close()
 
