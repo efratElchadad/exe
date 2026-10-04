@@ -68,3 +68,7 @@ Do not label the package production-ready until this checklist passes.
 
 The source package includes screenshots of actual Qt screens. These are Linux
 Qt offscreen renders, **not screenshots of a verified Windows installation**.
+
+
+## 0.3.0 verification
+27 tests passed locally and on Windows CI run 37209661322. New checks cover filtered display versus complete log persistence, clipboard, UTF-8 export, bounded log retention and credit URL dispatch. The built Windows EXE passed its offscreen startup gate. The Hebrew guide was opened and rendered locally. This update did not rerun an end-to-end Android APK build; the build engine is unchanged. A user reported a successful build on the preceding version.
