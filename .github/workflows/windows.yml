@@ -1,0 +1,38 @@
+name: Windows validation and portable EXE
+on:
+  workflow_dispatch:
+    inputs:
+      integration:
+        description: 'Run real Android Build (downloads tools and accepts Android SDK terms)'
+        type: boolean
+        default: false
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Build and test
+        shell: pwsh
+        run: ./packaging/build-windows.ps1
+      - name: Real Android Build
+        if: inputs.integration
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = '.'
+          .venv/Scripts/python.exe tests/integration_matrix.py integration --accept-sdk-license
+          if ($LASTEXITCODE -ne 0) { throw 'Integration failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AndroidCompiler-Windows-x64
+          path: dist/AndroidCompiler-Windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.integration
+        with:
+          name: android-integration-results
+          path: |
+            integration/Output
+            integration/integration-matrix.json

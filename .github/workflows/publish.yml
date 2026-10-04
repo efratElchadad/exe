@@ -1,0 +1,52 @@
+name: Build Windows EXE and publish Preview
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: windows-preview
+  cancel-in-progress: false
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run regression tests on Windows
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest -q --junitxml=test-results.xml
+      - name: Create single-file Windows EXE
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --paths . --name AndroidCompiler --add-data "LICENSES;LICENSES" --add-data "THIRD-PARTY.md;." packaging/entry.py
+      - name: Start the actual EXE and verify its window
+        shell: pwsh
+        run: |
+          $app = Start-Process -FilePath ./dist/AndroidCompiler.exe -ArgumentList '--smoke-test' -PassThru
+          if (-not $app.WaitForExit(90000)) { $app.Kill(); throw 'EXE startup timed out' }
+          if ($app.ExitCode -ne 0) { throw "EXE returned $($app.ExitCode)" }
+          $result = Get-Content smoke-test.json -Raw | ConvertFrom-Json
+          if (-not $result.opened -or -not $result.frozen) { throw 'EXE smoke test failed' }
+          Get-FileHash dist/AndroidCompiler.exe -Algorithm SHA256 | Format-List | Out-File dist/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AndroidCompiler-Windows
+          path: |
+            dist/AndroidCompiler.exe
+            dist/SHA256.txt
+            smoke-test.json
+            test-results.xml
+      - name: Publish downloadable EXE
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v0.2.0-preview.${{ github.run_number }}" dist/AndroidCompiler.exe dist/SHA256.txt --target "${{ github.sha }}" --title "AndroidCompiler 0.2 Preview" --prerelease --notes-file RELEASE-NOTES.md
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }

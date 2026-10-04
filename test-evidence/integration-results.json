@@ -1,0 +1,29 @@
+{
+  "signed_release": [
+    {
+      "path": "Output/HelloAndroid-9ac17832ee/1-app-release-unsigned.apk",
+      "name": "HelloAndroid",
+      "applicationId": "com.example.hello",
+      "version": "1.0",
+      "type": "Release",
+      "variant": "release",
+      "signed": true,
+      "bytes": 12871,
+      "filters": []
+    }
+  ],
+  "repeat_debug": [
+    {
+      "path": "Output/HelloAndroid-de8f892b06/1-app-debug.apk",
+      "name": "HelloAndroid",
+      "applicationId": "com.example.hello",
+      "version": "1.0",
+      "type": "Debug",
+      "variant": "debug",
+      "signed": true,
+      "bytes": 6665,
+      "filters": []
+    }
+  ],
+  "real_compile_failure": "correctly surfaced nonzero Gradle result"
+}
