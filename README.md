@@ -2,7 +2,7 @@
 
 Windows desktop application for building APK files from supported Android Gradle projects.
 
-**Preview:** actual Debug and signed Release builds were tested on Linux. The Preview release workflow builds on Windows, runs regression tests and checks EXE startup before publishing. See each workflow run for its actual result. Full interactive Windows testing remains outstanding.
+**Preview:** actual Debug and signed Release builds were tested on Linux. The Preview release workflow builds on Windows, runs regression tests and checks EXE startup before publishing. The 0.2 workflow passed all 23 tests and the frozen EXE startup check on Windows. Full interactive Windows testing remains outstanding.
 
 [Download Windows EXE / הורדת התוכנה](https://github.com/efratElchadad/exe/releases)
 
@@ -16,3 +16,7 @@ Windows desktop application for building APK files from supported Android Gradle
 - [רישיונות צד ג׳](THIRD-PARTY.md)
 
 Build scripts execute with the current user's permissions. Only build projects you trust.
+
+![AndroidCompiler 0.2 interface](docs/ui-v2-home.png)
+
+[Successful Windows validation](https://github.com/efratElchadad/exe/actions/runs/37206504804)

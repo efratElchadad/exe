@@ -1,3 +1,11 @@
+# עדכון לגרסת 0.2
+
+מומלץ להוריד את AndroidCompiler.exe היחיד מלשונית Releases. אין צורך בחילוץ ZIP.
+בעדכון זה חודש הממשק ותוקנו מסלולים שבהם כפתור קימפול לא נתן תגובה ברורה.
+23 בדיקות אוטומטיות ובדיקת פתיחת ה־EXE עברו על Windows ב־GitHub Actions.
+בדיקות שימוש ידניות ובניית APK מלאה על Windows עדיין לא הושלמו.
+ההוראות להלן כוללות גם את מסלול ZIP הישן מגרסת 0.1.
+
 # AndroidCompiler — גרסת Preview 0.1
 
 תוכנת Desktop לייבוא פרויקט Android, הכנת סביבת Build פרטית והפקת APK.
@@ -115,4 +123,4 @@ python packaging/portable.py --downloads downloads --launcher packaging/AndroidC
 - `packaging/` — launcher C, bootstrap ודרכי אריזה.
 
 לפירוט בדיקות: TEST-REPORT.md. רישיונות רכיבי צד ג': THIRD-PARTY.md.
-הפוסט לפורום לא צורף כפרסום של תוכנה מוכנה: נדרש קודם סבב Windows מלא.
+הפוסט לגרסת הניסיון נמצא בקובץ FORUM-POST-HE.md.

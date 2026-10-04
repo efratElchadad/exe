@@ -3,8 +3,10 @@
 23 automated tests passed locally on Linux, including three new regressions:
 Build click asks for consent; a worker failure is shown and logged; import results
 arrive on the GUI thread only after QThread has finished. The new UI was rendered
-and inspected. Windows regression tests and frozen EXE startup are run by the
-publish workflow; consult Actions for current status.
+and inspected. All 23 regression tests also passed on Windows, and the generated single-file
+EXE started successfully in Qt offscreen mode. Verified run:
+https://github.com/efratElchadad/exe/actions/runs/37206504804
+This does not establish full interactive or Android Build acceptance on Windows.
 
 ## Historical 0.1 engine verification
 
