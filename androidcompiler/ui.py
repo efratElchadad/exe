@@ -119,7 +119,7 @@ class Window(QMainWindow):
         for text in [self.t('SDK אוטומטי','Managed SDK'),self.t('חתימת APK','APK signing'),self.t('Logs בזמן אמת','Live build logs')]:metrics.addWidget(self.label(text,'metric'))
         b.addLayout(metrics);b.addWidget(self.label(self.t('01  ייבוא  →  02  אישור  →  03  קימפול  →  04  APK','01  IMPORT  →  02  REVIEW  →  03  BUILD  →  04  APK'),'notice'));b.addWidget(self.label(self.t('הכנה ראשונה דורשת אינטרנט. כלים ותלויות נשמרים לשימוש חוזר; פרויקט חדש עשוי להזדקק להורדות נוספות.','First setup requires internet. Tools and dependencies are cached; new projects may need more downloads.'),'subtitle'));b.addStretch()
         _,b=self.page('PROJECT REVIEW',self.t('מה הבנתי','What I understood'),self.t('ניתוח ראשוני בלבד. תלויות וערכים דינמיים ייבדקו בזמן הקימפול.','Initial analysis. Dynamic values and dependencies are validated during Build.'))
-        card=QFrame();card.setObjectName('card');form=QFormLayout(card);form.setContentsMargins(24,20,24,20);form.setSpacing(10)
+        card=QFrame();card.setObjectName('card');form=QFormLayout(card);self.project_form=form;form.setContentsMargins(24,20,24,20);form.setSpacing(10)
         self.project_label=self.label('');form.addRow(self.t('פרויקט','Project'),self.project_label)
         self.modules=QComboBox();self.modules.currentIndexChanged.connect(self.module_changed);form.addRow(self.t('מודול / קובץ כניסה','Module / entry point'),self.modules)
         self.fields={}
@@ -194,7 +194,10 @@ class Window(QMainWindow):
         engine=['android','python','dotnet'][self.target.currentIndex()]
         def work(job):
             w=Workspace(self.base/'workspaces')
-            try:return w,w.import_project(Path(path),None if engine=='android' else lambda source,workspace:analyze_desktop(source,workspace,engine))
+            try:
+                project=w.import_project(Path(path),None if engine=='android' else lambda source,workspace:analyze_desktop(source,workspace,engine))
+                if engine!='android' and project.name=='source':project.name=Path(path).stem if Path(path).is_file() else Path(path).name
+                return w,project
             except Exception:w.close();raise
         self.launch(work,self.imported)
     def imported(self,result):
@@ -202,7 +205,9 @@ class Window(QMainWindow):
     def populate(self):
         self.modules.blockSignals(True);self.modules.clear()
         self.modules.addItems([m.name for m in self.project.modules]);self.modules.blockSignals(False)
-        desktop=hasattr(self.project,'engine');self.sign.setVisible(not desktop);self.sign.setChecked(False);self.windowed.setVisible(desktop and self.project.engine=='python');self.windowed.setChecked(False)
+        desktop=hasattr(self.project,'engine')
+        for key in ('application_id','min_sdk','version','java'):self.project_form.setRowVisible(self.fields[key],not desktop)
+        self.sign.setVisible(not desktop);self.sign.setChecked(False);self.windowed.setVisible(desktop and self.project.engine=='python');self.windowed.setChecked(False)
         self.kind.setCurrentText('Release' if desktop else 'Debug')
         self.project_label.setText(self.project.name);self.module_changed(0)
         translations={
@@ -210,6 +215,7 @@ class Window(QMainWindow):
             'Compile SDK is dynamic; Gradle will resolve it during Build.':'גרסת SDK נקבעת באופן דינמי ותזוהה בזמן הבנייה.',
             'Composite build detected; included builds can execute additional code.':'זוהה פרויקט הכולל פרויקטי Build נוספים, שגם בהם יכול לרוץ קוד.',
             'Node/React Native projects need additional tooling and are not supported automatically.':'פרויקטי Node / React Native דורשים כלים נוספים ואינם נתמכים אוטומטית.'}
+        translations['Windows x64 EXE · Python 3.12 / SDK-style .NET 8–10. Build scripts and dependency installers execute with your permissions.']='EXE ל־Windows x64 · Python 3.12 או ‎.NET 8–10. סקריפטים והתקנת תלויות יפעלו בהרשאות שלך.'
         self.warnings.setText('\n'.join(translations.get(x,x) if self.he else x for x in self.project.warnings));self.trust.setChecked(False);self.stack.setCurrentIndex(1)
     def module_changed(self,index):
         if not self.project or index<0:return

@@ -130,3 +130,7 @@ python packaging/portable.py --downloads downloads --launcher packaging/AndroidC
 [מדריך שימוש מפורט](USER-GUIDE-HE.md) זמין גם בתוך התוכנה בכפתור מדריך ועזרה.
 
 קרדיט למוקד המערכות מפורום מתמחים טופ: https://mitmachim.top/user/מוקד-המערכות
+
+
+## גרסה 0.4.0 — בניית APK ו־EXE
+בחר סוג פרויקט במסך הבית: Android, Python או C#/.NET. לאחר ניתוח התיקייה או ה־ZIP בחר קובץ כניסה/מודול ותיקיית יעד. אישור Build מתחיל הורדת כלים לפי הצורך וקימפול מקומי. כל בנייה נשמרת בתת־תיקייה נפרדת. ראה USER-GUIDE-HE.md למגבלות סוגי הפרויקטים. אין המרת APK ל־EXE או להפך.

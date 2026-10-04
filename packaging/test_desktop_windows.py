@@ -8,7 +8,7 @@ from androidcompiler.runtime import Runner,CommandFailed
 def main():
     assert os.name=='nt'
     with tempfile.TemporaryDirectory() as temp:
-        base=Path(temp);runner=Runner(print,print)
+        base=Path(temp).resolve();runner=Runner(print,print)
         for engine in ('python','dotnet'):
             src=base/engine;src.mkdir()
             if engine=='python':(src/'main.py').write_text('print("REAL_EXE_OK")')

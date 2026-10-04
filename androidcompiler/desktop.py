@@ -51,7 +51,7 @@ class DesktopBuilder:
     def __init__(self,base,runner):
         self.base=Path(base);self.runner=runner;self.tools=Toolchain(self.base/'tools',runner,lambda _:False)
         self.env={k:v for k,v in os.environ.items() if k.upper() not in {'PYTHONHOME','PYTHONPATH','VIRTUAL_ENV','DOTNET_ROOT','DOTNET_ROOT_X64','MSBUILD_EXE_PATH','PYTHONSTARTUP'}}
-        self.env.update(PYTHONUTF8='1',PYTHONNOUSERSITE='1',PIP_DISABLE_PIP_VERSION_CHECK='1',PIP_CACHE_DIR=str(self.base/'tools/pip-cache'),NUGET_PACKAGES=str(self.base/'tools/nuget-cache'),DOTNET_CLI_TELEMETRY_OPTOUT='1',DOTNET_CLI_HOME=str(self.base/'tools/dotnet-home'),DOTNET_MULTILEVEL_LOOKUP='0',MSBUILDDISABLENODEREUSE='1')
+        self.env.update(PYTHONUTF8='1',PYTHONNOUSERSITE='1',PIP_DISABLE_PIP_VERSION_CHECK='1',PIP_CACHE_DIR=str(self.base/'tools/pip-cache'),NUGET_PACKAGES=str(self.base/'tools/nuget-cache'),DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE='true',DOTNET_CLI_TELEMETRY_OPTOUT='1',DOTNET_CLI_HOME=str(self.base/'tools/dotnet-home'),DOTNET_MULTILEVEL_LOOKUP='0',MSBUILDDISABLENODEREUSE='1')
     def python(self):
         target=self.tools.base/'python-3.12.10'
         checksum=base64.b64decode('u9pNz2iKlCEbYtUJaKkbOPMF0LjR7NkCafdKhvigpPzrt8oWKgdTpHaR6z3wyWQAm9PYGUxv0Zr66NX9AeHMDw==').hex()
@@ -119,7 +119,7 @@ class DesktopBuilder:
                 self.runner.stage('Restoring and publishing Windows EXE')
                 self.runner.run([dotnet,'publish',entry,'-c',kind,'-r','win-x64','--self-contained','true','-p:UseAppHost=true','-p:PublishSingleFile=true','-p:IncludeNativeLibrariesForSelfExtract=true','-p:PublishAot=false','-p:PublishTrimmed=false','-p:UseSharedCompilation=false','--disable-build-servers','-o',out],entry.parent,self.env)
             self.runner.check();self.runner.stage('Verifying EXE outputs')
-            executables=sorted(out.glob('*.exe'))
+            executables=sorted(out.glob('*.exe')) or sorted(out.glob('*/*.exe'))
             if not executables:raise ProjectError('Build completed without a top-level EXE. Check the selected entry point or publish settings.')
             results=[]
             for exe in executables:
