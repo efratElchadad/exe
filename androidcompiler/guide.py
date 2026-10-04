@@ -73,3 +73,23 @@ Select an APK when multiple outputs exist. Name, ID, version, variant, build typ
 ## Credit
 Credit to Moked Hama’arachot (מוקד המערכות), Mitmachim Top forum.
 '''+f'\n[Profile]({CREDIT_URL})\n'
+
+GUIDE_HE += """
+## חדש: APK ו־EXE ותיקיית יעד
+במסך הבית בחר Android → APK, Python → EXE או C# / .NET → EXE לפני בחירת תיקייה או ZIP. זו בנייה מקוד מקור, ולא המרת אפליקציות קיימות.
+
+במסך הבדיקה בחר מודול או קובץ כניסה, ואז לחץ **בחר תיקיית יעד**. כל בנייה יוצרת בתיקייה שבחרת תת־תיקייה ייחודית עם הקבצים ודוח. ברירת המחדל היא Output של התוכנה.
+
+**Python:** בחר קובץ py ראשי או spec של PyInstaller. מותקנת סביבת Python 3.12 פרטית, תלויות requirements.txt ופרויקט pyproject.toml/setup.py אם קיימים בשורש. ללא spec נוצרת חבילת onefile; spec קובע את מבנה האריזה והמשאבים. אפשר לבחור ללא חלון קונסולה לתוכנות עם ממשק. Debug/Release הם תווית בלבד במסלול Python; אין אופטימיזציה שונה. ספריות עם הרחבות C ללא wheel תואם דורשות כלים נוספים. חבילת Python המצומצמת אינה כוללת Tkinter; מסלול זה אינו תומך אוטומטית ביישומי Tkinter. קבצי נתונים וייבוא דינמי עשויים לדרוש spec מותאם.
+
+**.NET:** בחר csproj של אפליקציה בפורמט SDK עם יעד יחיד net8.0, net9.0 או net10.0, כולל סיומת windows. ה־SDK יורד לפי היעד או global.json. נוצר פרסום עצמאי ל־Windows x64. Debug/Release מועברים לבנייה. פרויקטי .NET Framework ישנים, MAUI, NativeAOT ופרויקטים עם workloads מיוחדים אינם נתמכים אוטומטית.
+
+**פתח קובץ** מפעיל EXE או פותח APK באמצעות יישום משויך. EXE אינו חתום בחתימת מפרסם. אם יש קבצים נלווים יש לשמור אותם יחד. כלי Windows יורדים רק כשבוחרים EXE; קימפול Android ממשיך להשתמש בכלים הקיימים.
+"""
+GUIDE_EN += """
+## APK / EXE and output folder
+Choose Android, Python or C#/.NET before importing a folder or ZIP. Select the module/entry point and Choose output folder on the review screen. Every build creates a unique subfolder with outputs and a report.
+Python uses managed Python 3.12, requirements.txt and an installable pyproject.toml/setup.py at the root. Select py or a PyInstaller spec; spec controls resources and packaging. Without a spec, onefile is used; Hide console is optional. Debug/Release is a label only for Python. Tkinter is not included in the reduced Python distribution; native dependencies without wheels need additional compilers. Dynamic imports/data may need a spec.
+.NET supports SDK-style csproj targeting a single net8.0, net9.0 or net10.0, optionally -windows. A private SDK is selected using the target/global.json and publishes self-contained Windows x64. Legacy Framework, MAUI, NativeAOT and special workloads are not automatically supported.
+Open file runs EXEs. Outputs have no publisher signature; retain companion files. This builds source projects, not conversions of existing APKs/EXEs.
+"""

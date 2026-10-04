@@ -3,7 +3,7 @@ import os, re, shutil, stat, tempfile, zipfile, hashlib
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
-IGNORED = {'.git', '.gradle', '.idea', 'build', 'node_modules', '.cxx', '.kotlin'}
+IGNORED = {'.git', '.gradle', '.idea', 'build', 'node_modules', '.cxx', '.kotlin', '.venv', 'venv', '__pycache__', 'dist', 'bin', 'obj'}
 MAX_BYTES = 8 * 1024**3
 MAX_FILES = 100_000
 
@@ -88,7 +88,7 @@ class Workspace:
         base.mkdir(parents=True, exist_ok=True)
         self.path = Path(tempfile.mkdtemp(prefix='project-', dir=base))
     def close(self): shutil.rmtree(self.path, ignore_errors=True)
-    def import_project(self, source: Path):
+    def import_project(self, source: Path, analyzer=None):
         if source.is_symlink(): raise ProjectError('Symbolic links are not supported')
         dest = self.path/'source'
         if source.is_file() and source.suffix.lower()=='.zip':
@@ -118,7 +118,7 @@ class Workspace:
             if 'local.properties' in files:
                 props=Path(folder)/'local.properties'
                 props.write_text('\n'.join(line for line in read(props).splitlines() if not re.match(r'\s*(?:sdk|ndk|cmake)\.dir\s*[=:]',line))+'\n','utf-8')
-        return analyze(dest,self.path)
+        return (analyzer or analyze)(dest,self.path)
 
 def analyze(source: Path, workspace: Path|None=None):
     roots=[]

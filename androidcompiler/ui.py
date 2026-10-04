@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBo
 from .project import Workspace
 from .runtime import Runner, Cancelled, explain
 from .build import BuildManager, Signing
+from .desktop import DesktopBuilder,analyze_desktop
 
 STYLE="""
 QToolTip {background:#213750;color:#ffffff;border:1px solid #4bddce;padding:8px;}
@@ -79,7 +80,7 @@ class Window(QMainWindow):
         super().__init__();self.he=True;self.job=None;self.workspace=None;self.project=None;self.results=[];self.logpath=None
         self.base=Path(base or QStandardPaths.writableLocation(QStandardPaths.AppLocalDataLocation));self.base.mkdir(parents=True,exist_ok=True)
         self.setWindowTitle('AndroidCompiler · Android build studio');self.resize(1250,900);self.setMinimumSize(1000,780)
-        self.started_at=0;self.last_event=0
+        self.started_at=0;self.last_event=0;self.output_root=self.base/'Output'
         self.clock=QTimer(self);self.clock.setInterval(1000);self.clock.timeout.connect(self.tick)
         self.draw()
     def t(self,he,en):return he if self.he else en
@@ -110,8 +111,9 @@ class Window(QMainWindow):
         self.lang=self.button('English' if self.he else 'עברית',self.toggle_language);top.addWidget(self.lang);top.addWidget(self.button(self.t('מדריך ועזרה','Guide & help'),self.show_guide))
         layout.addLayout(top)
         self.stack=QStackedWidget();self.stack.currentChanged.connect(self.mark_step);layout.addWidget(self.stack,1)
-        _,b=self.page('ANDROID BUILD STUDIO',self.t('מהפרויקט שלך — ל־APK','From your project to an APK'),self.t('סביבת קימפול פרטית. הכלים מוכנים עבורך, בלי Android Studio.','A managed build environment. No Android Studio required.'))
-        self.drop=DropZone(self.t('גרור לכאן פרויקט Android','Drop an Android project here'),self.t('תיקיית פרויקט או קובץ ZIP','Project folder or ZIP archive'));self.drop.chosen.connect(self.import_path);b.addWidget(self.drop)
+        _,b=self.page('ANDROID BUILD STUDIO',self.t('מהקוד שלך — לאפליקציה','From your code to an application'),self.t('סביבת קימפול פרטית. הכלים מוכנים עבורך, בלי Android Studio.','A managed build environment. No Android Studio required.'))
+        self.target=QComboBox();self.target.addItems(['Android → APK','Python → EXE','C# / .NET → EXE']);self.target.setToolTip(self.t('בחר את סוג קוד המקור לפני הייבוא. אין המרת APK או EXE קיימים.','Select the source project type before import. Existing APK/EXE conversion is not supported.'));b.addWidget(self.target)
+        self.drop=DropZone(self.t('גרור לכאן פרויקט מקור','Drop a source project here'),self.t('תיקיית פרויקט או קובץ ZIP','Project folder or ZIP archive'));self.drop.chosen.connect(self.import_path);b.addWidget(self.drop)
         row=QHBoxLayout();row.addStretch();row.addWidget(self.button(self.t('בחר תיקייה','Choose folder'),self.choose_folder,True));row.addWidget(self.button(self.t('בחר ZIP','Choose ZIP'),self.choose_zip));row.addStretch();b.addLayout(row)
         metrics=QHBoxLayout()
         for text in [self.t('SDK אוטומטי','Managed SDK'),self.t('חתימת APK','APK signing'),self.t('Logs בזמן אמת','Live build logs')]:metrics.addWidget(self.label(text,'metric'))
@@ -119,11 +121,13 @@ class Window(QMainWindow):
         _,b=self.page('PROJECT REVIEW',self.t('מה הבנתי','What I understood'),self.t('ניתוח ראשוני בלבד. תלויות וערכים דינמיים ייבדקו בזמן הקימפול.','Initial analysis. Dynamic values and dependencies are validated during Build.'))
         card=QFrame();card.setObjectName('card');form=QFormLayout(card);form.setContentsMargins(24,20,24,20);form.setSpacing(10)
         self.project_label=self.label('');form.addRow(self.t('פרויקט','Project'),self.project_label)
-        self.modules=QComboBox();self.modules.currentIndexChanged.connect(self.module_changed);form.addRow(self.t('מודול','Module'),self.modules)
+        self.modules=QComboBox();self.modules.currentIndexChanged.connect(self.module_changed);form.addRow(self.t('מודול / קובץ כניסה','Module / entry point'),self.modules)
         self.fields={}
-        for key,title in [('application_id','Application ID'),('compile_sdk','Compile SDK'),('min_sdk','Min SDK'),('build_tools','Build Tools'),('version',self.t('גרסה','Version')),('java','Java / Gradle')]:
+        for key,title in [('application_id','Application ID'),('compile_sdk','SDK / Runtime'),('min_sdk','Min SDK'),('build_tools','Build Tools'),('version',self.t('גרסה','Version')),('java','Java / Gradle (APK)')]:
             label=self.label('—');label.setLayoutDirection(Qt.LeftToRight);self.fields[key]=label;form.addRow(title,label)
         self.kind=QComboBox();self.kind.addItems(['Debug','Release']);form.addRow('Build type',self.kind);b.addWidget(card)
+        destrow=QHBoxLayout();self.destination=QLineEdit(str(self.output_root));self.destination.setReadOnly(True);self.destination.setLayoutDirection(Qt.LeftToRight);destrow.addWidget(self.destination,1);destrow.addWidget(self.button(self.t('בחר תיקיית יעד','Choose output folder'),self.choose_output));b.addLayout(destrow)
+        self.windowed=QCheckBox(self.t('EXE ללא חלון קונסולה (Python בלבד)','Hide console window (Python only)'));b.addWidget(self.windowed)
         self.warnings=self.label('','subtitle');b.addWidget(self.warnings)
         self.trust=QCheckBox(self.t('אני סומך על הפרויקט ומאשר הרצת קוד Build.','I trust this project and allow its build scripts to execute on this computer.'));b.addWidget(self.trust)
         self.sign=QCheckBox(self.t('חתום Release באמצעות Keystore אישי','Sign Release with a personal keystore'));self.sign.setEnabled(False);self.kind.currentTextChanged.connect(lambda k:self.sign.setEnabled(k=='Release'));b.addWidget(self.sign)
@@ -135,11 +139,11 @@ class Window(QMainWindow):
         logrow=QHBoxLayout();self.logtoggle=self.button(self.t('הצג / הסתר Logs','Show / hide logs'),lambda:self.logpanel.setVisible(not self.logpanel.isVisible()));logrow.addWidget(self.logtoggle);logrow.addStretch();self.cancelbutton=self.button(self.t('בטל','Cancel'),self.cancel_build);logrow.addWidget(self.cancelbutton);b.addLayout(logrow)
         self.logpanel=LogPanel(self.he);self.logs=self.logpanel.editor;b.addWidget(self.logpanel,1)
         self.endrow=QHBoxLayout();self.retry=self.button(self.t('נסה שוב','Try again'),self.review);self.endrow.addWidget(self.retry);self.endrow.addWidget(self.button(self.t('פתח קובץ Logs','Open log file'),self.open_log));self.backbutton=self.button(self.t('חזרה לפרויקט','Back to project'),self.review);self.endrow.addWidget(self.backbutton);b.addLayout(self.endrow)
-        _,b=self.page('BUILD OUTPUT',self.t('ה־APK שלך מוכן','Your APK is ready'),self.t('הקבצים נשמרו בתיקיית Output, יחד עם דוח הבנייה.','Files are saved in Output with a build report.'))
+        _,b=self.page('BUILD OUTPUT',self.t('התוצר שלך מוכן','Your build is ready'),self.t('הקבצים נשמרו בתיקיית היעד, יחד עם דוח הבנייה.','Files are saved in your output folder with a build report.'))
         self.resultselect=QComboBox();self.resultselect.currentIndexChanged.connect(self.result_changed);b.addWidget(self.resultselect)
         self.resulttext=self.label('');self.resulttext.setTextInteractionFlags(Qt.TextSelectableByMouse);b.addWidget(self.resulttext)
-        row=QHBoxLayout();row.addWidget(self.button(self.t('פתח APK','Open APK'),self.open_apk,True));row.addWidget(self.button(self.t('פתח תיקיית Output','Open Output folder'),self.open_output));row.addWidget(self.button(self.t('Build נוסף','Another build'),self.review));row.addWidget(self.button(self.t('פרויקט אחר','New project'),self.go_home));b.addLayout(row);b.addStretch()
-        footer=QHBoxLayout();footer.addWidget(self.label(self.t('מקומי במחשב שלך  ·  נדרש אינטרנט להכנה ראשונית','Local to your computer  ·  Internet needed for first setup'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW 0.3.0','eyebrow'));layout.addLayout(footer)
+        row=QHBoxLayout();row.addWidget(self.button(self.t('פתח קובץ','Open file'),self.open_apk,True));row.addWidget(self.button(self.t('פתח תיקיית תוצרים','Open output folder'),self.open_output));row.addWidget(self.button(self.t('Build נוסף','Another build'),self.review));row.addWidget(self.button(self.t('פרויקט אחר','New project'),self.go_home));b.addLayout(row);b.addStretch()
+        footer=QHBoxLayout();footer.addWidget(self.label(self.t('מקומי במחשב שלך  ·  נדרש אינטרנט להכנה ראשונית','Local to your computer  ·  Internet needed for first setup'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW 0.4.0','eyebrow'));layout.addLayout(footer)
         credit=self.button(self.t('קרדיט: מוקד המערכות · מתמחים טופ ↗','Credit: Moked Hama’arachot · Mitmachim Top ↗'),self.open_credit);credit.setObjectName('quiet');layout.addWidget(credit)
         self.apply_hints()
     def open_credit(self):
@@ -150,12 +154,13 @@ class Window(QMainWindow):
         close=self.button(self.t('סגור מדריך','Close guide'),dlg.accept);box.addWidget(close);dlg.exec()
     def apply_hints(self):
         hints={
+            'choose_output':('בוחר היכן לשמור את תוצרי הבנייה. כל בנייה מקבלת תת־תיקייה נפרדת.','Choose where build outputs are saved. Each build gets a separate subfolder.'),
             'choose_folder':('בחירת תיקיית המקור. העבודה נעשית בעותק זמני.','Select a source folder. Build works on a temporary copy.'),
             'choose_zip':('בחירת ארכיון ZIP לחילוץ ובדיקת פרויקט.','Extract and analyze a project ZIP.'),
             'start_build':('מאשר את הפרויקט ומתחיל הכנת כלים וקימפול.','Confirm project trust, prepare tools and compile.'),
             'cancel_build':('מבקש להפסיק את המשימה ותהליכי הבנייה. המתן לסיום הביטול.','Stop the current job and build processes. Wait for cancellation to finish.'),
             'review':('חזרה לפרטי הפרויקט לבחירת סוג בנייה ולניסיון נוסף.','Review the project and build options before another attempt.'),
-            'open_apk':('פותח בעזרת יישום משויך במחשב; Windows אינו מתקין APK בעצמו.','Open with an associated application; Windows does not install APKs itself.'),
+            'open_apk':('מפעיל EXE או פותח APK ביישום משויך. Windows אינו מתקין APK בעצמו.','Run the EXE or open the APK with an associated app. Windows cannot install APK itself.'),
             'open_output':('פותח את התיקייה שבה נשמרו ה־APK ודוח הבנייה.','Open the folder containing APK files and the build report.'),
             'open_log':('פותח את הלוג המלא בעורך טקסט.','Open the complete build log in a text editor.'),
             'go_home':('בחירת פרויקט אחר וניקוי עותק העבודה הזמני. התוצרים נשמרים.','Choose another project and clean the temporary copy. Output files remain.'),
@@ -173,6 +178,9 @@ class Window(QMainWindow):
         if self.job and self.job.isRunning():return
         self.he=not self.he;self.draw()
         if self.project:self.populate()
+    def choose_output(self):
+        path=QFileDialog.getExistingDirectory(self,self.t('תיקיית יעד ל־APK / EXE','APK / EXE output folder'),str(self.output_root))
+        if path:self.output_root=Path(path);self.destination.setText(path)
     def choose_folder(self):
         path=QFileDialog.getExistingDirectory(self,self.t('בחר פרויקט','Choose project'))
         if path:self.import_path(path)
@@ -183,9 +191,10 @@ class Window(QMainWindow):
         if self.job and self.job.isRunning():return
         if self.workspace:self.workspace.close();self.workspace=None;self.project=None
         self.busy(self.t('מייבא ומנתח את הפרויקט','Importing and analyzing project'))
+        engine=['android','python','dotnet'][self.target.currentIndex()]
         def work(job):
             w=Workspace(self.base/'workspaces')
-            try:return w,w.import_project(Path(path))
+            try:return w,w.import_project(Path(path),None if engine=='android' else lambda source,workspace:analyze_desktop(source,workspace,engine))
             except Exception:w.close();raise
         self.launch(work,self.imported)
     def imported(self,result):
@@ -193,6 +202,8 @@ class Window(QMainWindow):
     def populate(self):
         self.modules.blockSignals(True);self.modules.clear()
         self.modules.addItems([m.name for m in self.project.modules]);self.modules.blockSignals(False)
+        desktop=hasattr(self.project,'engine');self.sign.setVisible(not desktop);self.sign.setChecked(False);self.windowed.setVisible(desktop and self.project.engine=='python');self.windowed.setChecked(False)
+        self.kind.setCurrentText('Release' if desktop else 'Debug')
         self.project_label.setText(self.project.name);self.module_changed(0)
         translations={
             'Static analysis cannot resolve all Gradle expressions. Actual variants, dependencies and APK metadata are validated during Build.':'הניתוח הראשוני אינו מריץ Gradle. אימות התלויות והנתונים הסופיים יבוצע בזמן הבנייה.',
@@ -245,7 +256,7 @@ class Window(QMainWindow):
             with self.logpath.open('a',encoding='utf-8') as f:f.write(text+'\n')
     def stage(self,text):
         self.last_event=time.monotonic()
-        names={'Preparing secure connection certificates':'מכין תעודות אבטחה בפעולה אחת','Preparing Java':'מכין Java','Preparing Gradle':'מכין Gradle','Preparing Android SDK':'מכין Android SDK','Checking SDK packages':'בודק רכיבי SDK','Resolving dependencies / compiling':'פותר תלויות ומקמפל','Verifying APK outputs':'מאמת קובצי APK','Build completed':'הבנייה הושלמה','Aligning and signing APK':'מיישר וחותם APK','Creating signing key — keep a backup':'יוצר מפתח חתימה — חשוב לשמור גיבוי','Repairing missing SDK packages; one retry':'משלים רכיבי SDK חסרים ומנסה שוב'}
+        names={'Preparing managed Python':'מכין סביבת Python פרטית','Installing Python dependencies':'מתקין תלויות Python','Packaging Windows EXE':'אורז קובץ EXE ל־Windows','Preparing managed .NET SDK':'מכין סביבת .NET פרטית','Restoring and publishing Windows EXE':'מוריד תלויות ובונה EXE','Verifying EXE outputs':'מאמת תוצרי EXE','Preparing secure connection certificates':'מכין תעודות אבטחה בפעולה אחת','Preparing Java':'מכין Java','Preparing Gradle':'מכין Gradle','Preparing Android SDK':'מכין Android SDK','Checking SDK packages':'בודק רכיבי SDK','Resolving dependencies / compiling':'פותר תלויות ומקמפל','Verifying APK outputs':'מאמת קובצי APK','Build completed':'הבנייה הושלמה','Aligning and signing APK':'מיישר וחותם APK','Creating signing key — keep a backup':'יוצר מפתח חתימה — חשוב לשמור גיבוי','Repairing missing SDK packages; one retry':'משלים רכיבי SDK חסרים ומנסה שוב'}
         text=names.get(text,text) if self.he else text
         self.current.setText(text);self.activity.appendPlainText('• '+text)
     def job_done(self):self.lang.setEnabled(True);self.cancelbutton.setEnabled(False)
@@ -261,15 +272,21 @@ class Window(QMainWindow):
             self.trust.setChecked(True)
         if not 0<=self.modules.currentIndex()<len(self.project.modules):
             QMessageBox.warning(self,'AndroidCompiler',self.t('בחר מודול אפליקציה תקין.','Select a valid application module.'));return
+        self.output_root.mkdir(parents=True,exist_ok=True)
+        if self.output_root.resolve().is_relative_to(self.workspace.path.resolve()):raise ValueError('Choose a destination outside the temporary workspace')
+        probe=self.output_root/('.write-check-'+uuid.uuid4().hex)
+        try:probe.write_bytes(b'')
+        finally:probe.unlink(missing_ok=True)
         signing=None
         if self.kind.currentText()=='Release' and self.sign.isChecked():
             signing=self.sign_dialog()
             if signing is None:return
-        kind=self.kind.currentText();module=self.project.modules[self.modules.currentIndex()]
+        kind=self.kind.currentText();module=self.project.modules[self.modules.currentIndex()];output=self.output_root;windowed=self.windowed.isChecked()
         self.busy(self.t('מכין סביבת Build','Preparing build environment'))
         def work(job):
             runner=Runner(job.line.emit,job.stage.emit,job.cancel)
-            return BuildManager(self.base,runner,job.consent).build(self.project,module,kind,signing)
+            if hasattr(self.project,'engine'):return DesktopBuilder(self.base,runner).build(self.project,module,kind,output,windowed)
+            return BuildManager(self.base,runner,job.consent).build(self.project,module,kind,signing,output_root=output)
         self.launch(work,self.completed)
     def license_dialog(self,text):
         dlg=QDialog(self);dlg.setWindowTitle(self.t('תנאי שימוש ב־Android SDK','Android SDK license terms'));dlg.resize(850,640)
@@ -300,6 +317,8 @@ class Window(QMainWindow):
     def result_changed(self,index):
         if index<0 or index>=len(self.results):return
         r=self.results[index]
+        if r['type']=='EXE':
+            self.resulttext.setText(f"{r['name']}\n\nWindows x64 · {r['engine']} · {r['variant']}\n{r['bytes']/1024**2:.2f} MiB\n\n{r['path']}\n\n"+self.t('EXE ללא חתימת מפרסם. אם נוצרו קבצים נלווים, יש לשמור את תיקיית התוצרים בשלמותה.','EXE has no publisher signature. Keep all companion output files together.'));return
         signature=self.t('חתום','Signed') if r['signed'] else self.t('לא חתום — נדרשת חתימה לפני התקנה','UNSIGNED — sign before installing')
         self.resulttext.setText(f"{r['name']}\n\nApplication ID: {r['applicationId']}\nVersion: {r['version']}\n{r['type']} / {r['variant']}\n{signature}\n{r['bytes']/1024**2:.2f} MiB\n\n{r['path']}")
     def failed(self,error):

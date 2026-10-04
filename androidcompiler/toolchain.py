@@ -42,7 +42,7 @@ class Toolchain:
         try:
             self.download(url,archive,sha,algorithm)
             unpack=stage/'unpack';unpack.mkdir()
-            if url.split('?')[0].endswith('.zip'): extract_zip(archive,unpack)
+            if url.split('?')[0].endswith(('.zip','.nupkg')): extract_zip(archive,unpack)
             else:
                 with tarfile.open(archive) as tar:
                     # Python 3.12 data filter confines extraction, rejects device files.

@@ -71,7 +71,7 @@ def test_click_reaches_engine_and_shows_failure(tmp_path,monkeypatch):
     reached=[]
     class FailingEngine:
         def __init__(self,*args):pass
-        def build(self,*args):
+        def build(self,*args,**kwargs):
             reached.append(args)
             raise RuntimeError('REGRESSION: engine failure must be visible')
     monkeypatch.setattr(ui,'BuildManager',FailingEngine)
@@ -115,4 +115,17 @@ def test_log_bounded_and_credit_link(tmp_path,monkeypatch):
     w.logpanel.append('\n'.join(str(i) for i in range(5100)));w.logpanel.render()
     assert len(w.logpanel.rows)==5000 and w.logpanel.rows[0][1]=='100'
     assert 'Offline' in GUIDE_HE and 'Offline' in GUIDE_EN
+    w.close()
+
+
+def test_desktop_review_and_destination(tmp_path,monkeypatch):
+    from androidcompiler.ui import QFileDialog
+    src=tmp_path/'python-source';src.mkdir();(src/'main.py').write_text('print(1)')
+    w=Window(tmp_path/'app');w.show();w.target.setCurrentIndex(1);w.import_path(str(src));wait_job(w)
+    assert w.project.engine=='python' and w.modules.currentText()=='main.py'
+    assert w.windowed.isVisible() and not w.sign.isVisible()
+    destination=tmp_path/'chosen output'
+    monkeypatch.setattr(QFileDialog,'getExistingDirectory',lambda *a:str(destination))
+    w.choose_output();assert w.output_root==destination and w.destination.text()==str(destination)
+    w.toggle_language();assert w.output_root==destination and w.destination.text()==str(destination)
     w.close()

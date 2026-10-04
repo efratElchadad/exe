@@ -17,9 +17,10 @@ class BuildManager:
     def __init__(self,base,runner,consent):
         self.base=Path(base);self.runner=runner
         self.tools=Toolchain(self.base/'tools',runner,consent)
-    def build(self,project,module,kind='Debug',signing=None):
+    def build(self,project,module,kind='Debug',signing=None,output_root=None):
         if kind not in ('Debug','Release'):raise ValueError('Unsupported build type')
         if signing and kind!='Release':raise ValueError('Custom signing is for Release builds')
+        if output_root and Path(output_root).resolve().is_relative_to(project.workspace.resolve()):raise ValueError('Output must be outside the temporary workspace')
         self.tools.prepare(project)
         self.runner.stage('Checking SDK packages')
         self.tools.install_sdk(module)
@@ -52,7 +53,7 @@ class BuildManager:
         if not toolsdirs:raise ValueError('Android signing verification tool was not installed')
         bt=toolsdirs[-1]
         if signing and signing.create:self.create_key(signing)
-        outdir=self.base/'Output'/f'{re.sub(r"[^\w.-]","_",project.name)}-{uuid.uuid4().hex[:10]}'
+        outdir=Path(output_root or self.base/'Output')/f'{re.sub(r"[^\w.-]","_",project.name)}-{uuid.uuid4().hex[:10]}'
         outdir.mkdir(parents=True)
         results=[]
         try:
