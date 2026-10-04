@@ -1,19 +1,23 @@
 from __future__ import annotations
 import os, sys, threading, traceback, uuid, time, json
+from .guide import GUIDE_HE, GUIDE_EN, CREDIT_URL
+from .logview import LogPanel
 from pathlib import Path
 from PySide6.QtCore import Qt, QThread, Signal, QUrl, QStandardPaths, QLockFile, QTimer
 from PySide6.QtGui import QDesktopServices, QFont, QColor
-from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QFileDialog,QStackedWidget,QFrame,QComboBox,QFormLayout,QCheckBox,QProgressBar,QPlainTextEdit,QMessageBox,QDialog,QDialogButtonBox,QLineEdit,QScrollArea)
+from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QFileDialog,QStackedWidget,QFrame,QComboBox,QFormLayout,QCheckBox,QProgressBar,QPlainTextEdit,QMessageBox,QDialog,QDialogButtonBox,QLineEdit,QScrollArea,QTextBrowser)
 from .project import Workspace
 from .runtime import Runner, Cancelled, explain
 from .build import BuildManager, Signing
 
 STYLE="""
-QWidget { background:#0d111b; color:#e9edf7; font-family:"Segoe UI"; font-size:14px; }
-QFrame#sidebar {background:#141a28;border:1px solid #252d40;border-radius:18px;}
+QToolTip {background:#213750;color:#ffffff;border:1px solid #4bddce;padding:8px;}
+QTextBrowser {background:#101c2d;border:1px solid #2a4059;border-radius:12px;padding:20px;font-size:15px;}
+QWidget { background:#090f1d; color:#e9edf7; font-family:"Segoe UI"; font-size:14px; }
+QFrame#sidebar {background:#101d30;border:1px solid #252d40;border-radius:18px;}
 QFrame#sidebar QLabel {background:transparent;}
 QLabel#brand {font-size:21px;font-weight:700;}
-QLabel#eyebrow {color:#9eaeff;font-size:12px;font-weight:600;letter-spacing:2px;}
+QLabel#eyebrow {color:#5bdbd1;font-size:12px;font-weight:600;letter-spacing:2px;}
 QLabel#title {font-size:30px;font-weight:700;}
 QLabel#subtitle {color:#99a5bc;font-size:14px;}
 QLabel#step {padding:17px 12px;color:#7c89a4;border-radius:10px;}
@@ -22,20 +26,20 @@ QLabel#notice {background:#22263b;color:#c7d3ff;border:1px solid #424f76;border-
 QLabel#metric {font-size:16px;font-weight:600;color:#d3dcf3;padding:18px;background:#192132;border-radius:12px;}
 QFrame#card {background:#171f2f;border:1px solid #2a354d;border-radius:16px;}
 QFrame#card QLabel,QFrame#card QCheckBox {background:transparent;}
-QFrame#drop {background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #1b2741,stop:1 #171c2c);border:2px dashed #6075ba;border-radius:20px;}
+QFrame#drop {background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #143449,stop:0.5 #152840,stop:1 #242043);border:2px dashed #429caa;border-radius:20px;}
 QFrame#drop QLabel {background:transparent;}
 QPushButton {background:#202b40;border:1px solid #384762;border-radius:10px;padding:12px 20px;font-weight:600;min-height:21px;}
 QPushButton:hover {background:#31415f;border-color:#94a5ff;}
 QPushButton:pressed {background:#3c4b75;}
 QPushButton:disabled {color:#68758b;background:#181e2b;border-color:#283246;}
-QPushButton#primary {background:#899bff;color:#0a1433;border:0;font-weight:700;}
+QPushButton#primary {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #45e0d0,stop:1 #68a8ff);color:#061321;border:0;font-weight:700;}
 QPushButton#primary:hover {background:#b0bcff;}
 QPushButton#quiet {background:transparent;border:0;color:#a0afca;}
 QComboBox,QLineEdit {background:#101827;border:1px solid #3c4a63;border-radius:8px;padding:8px;min-height:22px;}
 QComboBox QAbstractItemView {background:#24334e;selection-background-color:#495d96;}
 QPlainTextEdit {background:#090e18;color:#bdcce5;border:1px solid #2e3c56;border-radius:10px;font-family:"Consolas";font-size:12px;padding:10px;}
 QProgressBar {background:#26334b;border:0;border-radius:5px;min-height:9px;max-height:9px;}
-QProgressBar::chunk {background:#8c9dff;border-radius:5px;}
+QProgressBar::chunk {background:#4bddce;border-radius:5px;}
 QCheckBox {spacing:9px;} QCheckBox::indicator {width:19px;height:19px;border:1px solid #6a7d9f;border-radius:5px;background:#0f1725;}
 QCheckBox::indicator:checked {background:#a7b5ff;border:3px solid #5266ba;}
 QScrollArea {border:0;} QScrollBar:vertical {background:#151e2d;width:8px;} QScrollBar::handle:vertical {background:#435777;border-radius:4px;min-height:25px;}
@@ -80,7 +84,7 @@ class Window(QMainWindow):
         self.draw()
     def t(self,he,en):return he if self.he else en
     def button(self,text,fn,primary=False):
-        b=QPushButton(text);b.setCursor(Qt.PointingHandCursor);b.clicked.connect(lambda checked=False:self.invoke(fn))
+        b=QPushButton(text);b.setProperty('action',getattr(fn,'__name__',''));b.setAccessibleName(text);b.setCursor(Qt.PointingHandCursor);b.clicked.connect(lambda checked=False:self.invoke(fn))
         if primary:b.setObjectName('primary')
         return b
     def label(self,text,name=None):
@@ -100,10 +104,10 @@ class Window(QMainWindow):
         self.steps=[]
         for title in [self.t('01   בחירת פרויקט','01   Import project'),self.t('02   בדיקה ואישור','02   Review & confirm'),self.t('03   קימפול','03   Build'),self.t('04   תוצרים','04   Output')]:
             label=self.label(title,'step');sb.addWidget(label);self.steps.append(label)
-        sb.addStretch();sb.addWidget(self.label(self.t('הכלים מנוהלים כאן.\nאתה בוחר מה לבנות.','Your tools, managed.\nYour project, ready.'),'subtitle'))
+        sb.addStretch();sb.addWidget(self.label('LOCAL BUILD ENGINE','eyebrow'));sb.addWidget(self.label(self.t('הכלים מנוהלים כאן.\nאתה בוחר מה לבנות.','Your tools, managed.\nYour project, ready.'),'subtitle'))
         outer.addWidget(side);content=QWidget();outer.addWidget(content,1);layout=QVBoxLayout(content);layout.setContentsMargins(0,0,0,0);layout.setSpacing(18)
         top=QHBoxLayout();brand=self.label('◈  AndroidCompiler','brand');brand.setLayoutDirection(Qt.LeftToRight);brand.setWordWrap(False);top.addWidget(brand);top.addStretch()
-        self.lang=self.button('English' if self.he else 'עברית',self.toggle_language);top.addWidget(self.lang)
+        self.lang=self.button('English' if self.he else 'עברית',self.toggle_language);top.addWidget(self.lang);top.addWidget(self.button(self.t('מדריך ועזרה','Guide & help'),self.show_guide))
         layout.addLayout(top)
         self.stack=QStackedWidget();self.stack.currentChanged.connect(self.mark_step);layout.addWidget(self.stack,1)
         _,b=self.page('ANDROID BUILD STUDIO',self.t('מהפרויקט שלך — ל־APK','From your project to an APK'),self.t('סביבת קימפול פרטית. הכלים מוכנים עבורך, בלי Android Studio.','A managed build environment. No Android Studio required.'))
@@ -111,7 +115,7 @@ class Window(QMainWindow):
         row=QHBoxLayout();row.addStretch();row.addWidget(self.button(self.t('בחר תיקייה','Choose folder'),self.choose_folder,True));row.addWidget(self.button(self.t('בחר ZIP','Choose ZIP'),self.choose_zip));row.addStretch();b.addLayout(row)
         metrics=QHBoxLayout()
         for text in [self.t('SDK אוטומטי','Managed SDK'),self.t('חתימת APK','APK signing'),self.t('Logs בזמן אמת','Live build logs')]:metrics.addWidget(self.label(text,'metric'))
-        b.addLayout(metrics);b.addStretch()
+        b.addLayout(metrics);b.addWidget(self.label(self.t('01  ייבוא  →  02  אישור  →  03  קימפול  →  04  APK','01  IMPORT  →  02  REVIEW  →  03  BUILD  →  04  APK'),'notice'));b.addWidget(self.label(self.t('הכנה ראשונה דורשת אינטרנט. כלים ותלויות נשמרים לשימוש חוזר; פרויקט חדש עשוי להזדקק להורדות נוספות.','First setup requires internet. Tools and dependencies are cached; new projects may need more downloads.'),'subtitle'));b.addStretch()
         _,b=self.page('PROJECT REVIEW',self.t('מה הבנתי','What I understood'),self.t('ניתוח ראשוני בלבד. תלויות וערכים דינמיים ייבדקו בזמן הקימפול.','Initial analysis. Dynamic values and dependencies are validated during Build.'))
         card=QFrame();card.setObjectName('card');form=QFormLayout(card);form.setContentsMargins(24,20,24,20);form.setSpacing(10)
         self.project_label=self.label('');form.addRow(self.t('פרויקט','Project'),self.project_label)
@@ -127,15 +131,44 @@ class Window(QMainWindow):
         self.review_notice=self.label(self.t('מוכן לבדיקה. לחיצה על קימפול תבקש אישור אם עדיין לא סומן.','Ready for review. Build will ask for trust confirmation if needed.'),'notice');b.addWidget(self.review_notice)
         _,b=self.page('LIVE BUILD',self.t('בונים את האפליקציה','Building your application'),self.t('השלב מוצג לפי הפעולה שמתבצעת בפועל. אין אחוזי קימפול משוערים.','Stages reflect actual work. No estimated compilation percentages.'))
         self.current=self.label('','brand');b.addWidget(self.current);self.elapsed=self.label('','notice');b.addWidget(self.elapsed);self.progress=QProgressBar();self.progress.setRange(0,0);self.progress.setTextVisible(False);b.addWidget(self.progress)
-        self.activity=QPlainTextEdit();self.activity.setReadOnly(True);self.activity.setMaximumBlockCount(100);self.activity.setMaximumHeight(160);b.addWidget(self.activity)
-        logrow=QHBoxLayout();self.logtoggle=self.button(self.t('הצג / הסתר Logs','Show / hide logs'),lambda:self.logs.setVisible(not self.logs.isVisible()));logrow.addWidget(self.logtoggle);logrow.addStretch();self.cancelbutton=self.button(self.t('בטל','Cancel'),self.cancel_build);logrow.addWidget(self.cancelbutton);b.addLayout(logrow)
-        self.logs=QPlainTextEdit();self.logs.setReadOnly(True);self.logs.setMaximumBlockCount(5000);self.logs.setLayoutDirection(Qt.LeftToRight);b.addWidget(self.logs,1)
+        self.activity=QPlainTextEdit();self.activity.setReadOnly(True);self.activity.setMaximumBlockCount(100);self.activity.setMaximumHeight(75);b.addWidget(self.activity)
+        logrow=QHBoxLayout();self.logtoggle=self.button(self.t('הצג / הסתר Logs','Show / hide logs'),lambda:self.logpanel.setVisible(not self.logpanel.isVisible()));logrow.addWidget(self.logtoggle);logrow.addStretch();self.cancelbutton=self.button(self.t('בטל','Cancel'),self.cancel_build);logrow.addWidget(self.cancelbutton);b.addLayout(logrow)
+        self.logpanel=LogPanel(self.he);self.logs=self.logpanel.editor;b.addWidget(self.logpanel,1)
         self.endrow=QHBoxLayout();self.retry=self.button(self.t('נסה שוב','Try again'),self.review);self.endrow.addWidget(self.retry);self.endrow.addWidget(self.button(self.t('פתח קובץ Logs','Open log file'),self.open_log));self.backbutton=self.button(self.t('חזרה לפרויקט','Back to project'),self.review);self.endrow.addWidget(self.backbutton);b.addLayout(self.endrow)
         _,b=self.page('BUILD OUTPUT',self.t('ה־APK שלך מוכן','Your APK is ready'),self.t('הקבצים נשמרו בתיקיית Output, יחד עם דוח הבנייה.','Files are saved in Output with a build report.'))
         self.resultselect=QComboBox();self.resultselect.currentIndexChanged.connect(self.result_changed);b.addWidget(self.resultselect)
         self.resulttext=self.label('');self.resulttext.setTextInteractionFlags(Qt.TextSelectableByMouse);b.addWidget(self.resulttext)
         row=QHBoxLayout();row.addWidget(self.button(self.t('פתח APK','Open APK'),self.open_apk,True));row.addWidget(self.button(self.t('פתח תיקיית Output','Open Output folder'),self.open_output));row.addWidget(self.button(self.t('Build נוסף','Another build'),self.review));row.addWidget(self.button(self.t('פרויקט אחר','New project'),self.go_home));b.addLayout(row);b.addStretch()
-        footer=QHBoxLayout();footer.addWidget(self.label(self.t('מקומי במחשב שלך  ·  נדרש אינטרנט להכנה ראשונית','Local to your computer  ·  Internet needed for first setup'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW 0.2.1','eyebrow'));layout.addLayout(footer)
+        footer=QHBoxLayout();footer.addWidget(self.label(self.t('מקומי במחשב שלך  ·  נדרש אינטרנט להכנה ראשונית','Local to your computer  ·  Internet needed for first setup'),'subtitle'));footer.addStretch();footer.addWidget(self.label('PREVIEW 0.3.0','eyebrow'));layout.addLayout(footer)
+        credit=self.button(self.t('קרדיט: מוקד המערכות · מתמחים טופ ↗','Credit: Moked Hama’arachot · Mitmachim Top ↗'),self.open_credit);credit.setObjectName('quiet');layout.addWidget(credit)
+        self.apply_hints()
+    def open_credit(self):
+        QDesktopServices.openUrl(QUrl(CREDIT_URL))
+    def show_guide(self):
+        dlg=QDialog(self);dlg.setWindowTitle(self.t('המדריך ל־AndroidCompiler','AndroidCompiler guide'));dlg.resize(850,700)
+        box=QVBoxLayout(dlg);browser=QTextBrowser();browser.setOpenExternalLinks(True);browser.setMarkdown(GUIDE_HE if self.he else GUIDE_EN);box.addWidget(browser)
+        close=self.button(self.t('סגור מדריך','Close guide'),dlg.accept);box.addWidget(close);dlg.exec()
+    def apply_hints(self):
+        hints={
+            'choose_folder':('בחירת תיקיית המקור. העבודה נעשית בעותק זמני.','Select a source folder. Build works on a temporary copy.'),
+            'choose_zip':('בחירת ארכיון ZIP לחילוץ ובדיקת פרויקט.','Extract and analyze a project ZIP.'),
+            'start_build':('מאשר את הפרויקט ומתחיל הכנת כלים וקימפול.','Confirm project trust, prepare tools and compile.'),
+            'cancel_build':('מבקש להפסיק את המשימה ותהליכי הבנייה. המתן לסיום הביטול.','Stop the current job and build processes. Wait for cancellation to finish.'),
+            'review':('חזרה לפרטי הפרויקט לבחירת סוג בנייה ולניסיון נוסף.','Review the project and build options before another attempt.'),
+            'open_apk':('פותח בעזרת יישום משויך במחשב; Windows אינו מתקין APK בעצמו.','Open with an associated application; Windows does not install APKs itself.'),
+            'open_output':('פותח את התיקייה שבה נשמרו ה־APK ודוח הבנייה.','Open the folder containing APK files and the build report.'),
+            'open_log':('פותח את הלוג המלא בעורך טקסט.','Open the complete build log in a text editor.'),
+            'go_home':('בחירת פרויקט אחר וניקוי עותק העבודה הזמני. התוצרים נשמרים.','Choose another project and clean the temporary copy. Output files remain.'),
+            'toggle_language':('מעבר בין עברית לאנגלית כשאין משימה פעילה.','Switch Hebrew/English while no job is running.'),
+            'show_guide':('הסבר על כל הכפתורים, המושגים, האינטרנט ותהליך הקימפול.','Read about every control, terminology, internet and the build process.'),
+            'open_credit':('פתיחת הפרופיל של מוקד המערכות בפורום מתמחים טופ.','Open the credited Mitmachim Top profile.')}
+        for button in self.findChildren(QPushButton):
+            key=button.property('action')
+            if key in hints:button.setToolTip(self.t(*hints[key]))
+        self.modules.setToolTip(self.t('מודול Android שמייצר אפליקציה; בפרויקט יכולים להיות כמה מודולים.','The Android application module to build.'))
+        self.kind.setToolTip(self.t('Debug לבדיקה, עם חתימת פיתוח. Release להפצה; ייתכן שתידרש חתימה אישית.','Debug is for testing with a development signature. Release is for distribution and may need your signing key.'))
+        self.sign.setToolTip(self.t('חתימת Release במפתח שלך. שמור את המפתח והסיסמאות לעדכונים עתידיים.','Sign Release using your own key. Keep the key and passwords for future updates.'))
+        self.trust.setToolTip(self.t('Gradle מריץ קוד מהפרויקט בהרשאות המשתמש. תיקייה זמנית אינה ארגז חול אבטחתי.','Gradle executes project code with your user permissions. A temporary folder is not a security sandbox.'))
     def toggle_language(self):
         if self.job and self.job.isRunning():return
         self.he=not self.he;self.draw()
@@ -175,7 +208,7 @@ class Window(QMainWindow):
             label.setText(str(val) if val else self.t('לא ידוע — ייפתר ב־Build','Unknown — resolved during Build'))
     def busy(self,stage):
         self.started_at=self.last_event=time.monotonic();self.clock.start();self.elapsed.setText(self.t('הבקשה התקבלה — מתחיל כעת','Request received — starting now'))
-        self.logs.clear();self.activity.clear();self.current.setText(stage);self.activity.appendPlainText('● '+stage);self.progress.setRange(0,0)
+        self.logpanel.reset();self.activity.clear();self.current.setText(stage);self.activity.appendPlainText('● '+stage);self.progress.setRange(0,0)
         self.retry.hide();self.backbutton.hide();self.cancelbutton.setEnabled(True);self.lang.setEnabled(False);self.stack.setCurrentIndex(2)
     def launch(self,fn,success):
         logdir=self.base/'Logs';logdir.mkdir(exist_ok=True);self.logpath=logdir/(uuid.uuid4().hex+'.log')
@@ -207,7 +240,7 @@ class Window(QMainWindow):
         if idle>=15:text+=self.t(f'  ·  ממתין לתגובה מהכלי או מהרשת ({idle} שניות). אפשר לבטל.',f'  ·  Waiting for tool/network output ({idle}s). You can cancel.')
         self.elapsed.setText(text)
     def log(self,text):
-        self.last_event=time.monotonic();self.logs.appendPlainText(text)
+        self.last_event=time.monotonic();self.logpanel.append(text)
         if self.logpath:
             with self.logpath.open('a',encoding='utf-8') as f:f.write(text+'\n')
     def stage(self,text):
@@ -272,7 +305,7 @@ class Window(QMainWindow):
     def failed(self,error):
         self.clock.stop();self.cancelbutton.setEnabled(False);self.lang.setEnabled(True);self.progress.setRange(0,1);self.progress.setValue(0);self.log(error)
         title,helptext=(self.t('הפעולה בוטלה','Cancelled'),'') if error=='CANCELLED' else explain(error)
-        self.current.setText(title);self.activity.appendPlainText(helptext);self.retry.setVisible(self.project is not None);self.backbutton.show();self.logs.show()
+        self.current.setText(title);self.activity.appendPlainText(helptext);self.retry.setVisible(self.project is not None);self.backbutton.show();self.logpanel.show()
     def cancel_build(self):
         if self.job:self.job.cancel.set();self.cancelbutton.setEnabled(False);self.stage(self.t('מבטל ומסיים תהליכים…','Cancelling processes…'))
     def review(self):

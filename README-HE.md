@@ -124,3 +124,9 @@ python packaging/portable.py --downloads downloads --launcher packaging/AndroidC
 
 לפירוט בדיקות: TEST-REPORT.md. רישיונות רכיבי צד ג': THIRD-PARTY.md.
 הפוסט לגרסת הניסיון נמצא בקובץ FORUM-POST-HE.md.
+
+
+## מדריך וקרדיט
+[מדריך שימוש מפורט](USER-GUIDE-HE.md) זמין גם בתוך התוכנה בכפתור מדריך ועזרה.
+
+קרדיט למוקד המערכות מפורום מתמחים טופ: https://mitmachim.top/user/מוקד-המערכות

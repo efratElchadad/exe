@@ -1,14 +1,12 @@
-# AndroidCompiler 0.2.1 Preview — certificate setup fix
+# AndroidCompiler 0.3.0 Preview
 
-Fixed the repeated “Certificate was added to keystore” messages during first setup.
-System roots are now prepared by one Java process, with actual certificate counts,
-a 120-second timeout and a verified cache. Partial files from interrupted work are
-not reused. TLS certificate verification and Java security policies stay enabled.
+- Refreshed dark interface with teal/blue accents, gradient import panel and guided navigation.
+- Live log search, error/warning filters, auto-scroll control, timestamps, copy and UTF-8 export.
+- Bounded display (5,000 lines); complete raw output remains on disk. Large log bursts are batched for UI responsiveness.
+- Built-in Hebrew/English guide covers every workflow, signing, terminology, internet requirements and limitations.
+- Contextual tooltips and linked credit to מוקד המערכות from Mitmachim Top.
+- Includes the 0.2.1 certificate performance fix. No manual toolchain reinstall is required.
 
-תוקנה הכנת תעודות האבטחה האיטית: פעולה אחת במקום הפעלת Java לכל תעודה.
-כעת מוצגים מספרי תעודות אמיתיים, התוצאה נשמרת לשימוש חוזר וקובץ חלקי אינו משמש
-לבנייה. אין צורך למחוק את כלי Java/SDK או את הפרויקט כדי להתקין עדכון זה.
+Download AndroidCompiler.exe, close the previous version and launch it. Builds run locally. First setup requires internet; cached builds are not guaranteed to work offline.
 
-Windows regression tests include actual Java trust-store creation, cache reuse,
-corruption recovery and cancellation. The frozen EXE startup is tested before
-publishing. Full manual Windows and project-specific Android tests remain outstanding.
+Windows CI runs regression tests and launches the packaged EXE before publishing. This is a Preview; arbitrary Android projects, additional native frameworks and fully offline builds are not guaranteed.

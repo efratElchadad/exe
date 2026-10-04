@@ -93,3 +93,26 @@ def test_import_result_delivered_after_worker_finished(tmp_path):
     wait_job(w)
     assert observed==[(42,False,True)]
     w.close()
+
+def test_log_filter_export_and_full_log(tmp_path,monkeypatch):
+    from androidcompiler.logview import QFileDialog
+    w=Window(tmp_path/'app');w.logpath=tmp_path/'full.log'
+    w.log('normal output');w.log('WARNING: deprecated API');w.log('ERROR: missing item')
+    w.logpanel.level.setCurrentIndex(1);w.logpanel.render()
+    assert 'missing item' in w.logs.toPlainText() and 'normal output' not in w.logs.toPlainText()
+    w.logpanel.copy();assert 'missing item' in QApplication.clipboard().text()
+    dest=tmp_path/'filtered.txt';monkeypatch.setattr(QFileDialog,'getSaveFileName',lambda *a:(str(dest),'Text'))
+    w.logpanel.save();assert 'missing item' in dest.read_text('utf-8')
+    assert 'normal output' in w.logpath.read_text('utf-8')
+    w.logpanel.search.setText('absent');w.logpanel.render();assert not w.logs.toPlainText()
+    w.close()
+
+def test_log_bounded_and_credit_link(tmp_path,monkeypatch):
+    from androidcompiler.ui import QDesktopServices
+    from androidcompiler.guide import CREDIT_URL,GUIDE_HE,GUIDE_EN
+    calls=[];monkeypatch.setattr(QDesktopServices,'openUrl',lambda url:calls.append(url.toString()) or True)
+    w=Window(tmp_path);w.open_credit();assert calls==[CREDIT_URL] or calls==[QUrl(CREDIT_URL).toString()]
+    w.logpanel.append('\n'.join(str(i) for i in range(5100)));w.logpanel.render()
+    assert len(w.logpanel.rows)==5000 and w.logpanel.rows[0][1]=='100'
+    assert 'Offline' in GUIDE_HE and 'Offline' in GUIDE_EN
+    w.close()
