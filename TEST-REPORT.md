@@ -83,3 +83,11 @@ Qt offscreen renders, **not screenshots of a verified Windows installation**.
 - Earlier CI run 37238079303 built the Python EXE but its test compared a Windows short pathname to a canonical pathname. The test now canonicalizes its temporary root before comparison.
 - The existing APK engine now accepts output_root; this update did not rerun an Android SDK/Gradle end-to-end build. Earlier Android build evidence remains documented above.
 - Manual Explorer drag/drop and arbitrary third-party desktop projects are not covered by these tests.
+
+
+## 0.5.0 Mac build verification
+- GitHub Actions run 37278256322: both macos-15 (Apple Silicon) and macos-15-intel passed real Python and .NET build, executable launch and DMG creation.
+- Fixed hdiutil image-capacity underestimation for the .NET single-file output by sizing from logical bytes with filesystem headroom. The previous run built and launched Python/.NET but failed while creating the .NET DMG.
+- 32 local regression tests passed. Cloud transport tests use controlled API responses to exercise private-repository enforcement, upload/poll/download orchestration and absence of the token from uploaded payloads.
+- A complete desktop-to-private-account transfer using a real user PAT has not been exercised here. Real macOS engine tests run in this repository's Actions. User account policies, quota and credentials remain prerequisites.
+- Apple Developer ID signing, notarization, GUI interaction and arbitrary third-party projects are not validated.
