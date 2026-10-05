@@ -1,5 +1,7 @@
 # גרסה 0.6 — Windows, Mac ו־Android
 
+**הורדה ישירה — ללא ZIP:** [Android APK](https://github.com/efratElchadad/exe/releases/download/v0.6.0-preview.14/AndroidCompiler-Android.apk) · [Windows EXE](https://github.com/efratElchadad/exe/releases/download/v0.6.0-preview.14/AndroidCompiler.exe) · [Mac Apple Silicon](https://github.com/efratElchadad/exe/releases/download/v0.6.0-preview.14/AndroidCompiler-Mac-arm64.dmg) · [Mac Intel](https://github.com/efratElchadad/exe/releases/download/v0.6.0-preview.14/AndroidCompiler-Mac-x64.dmg)
+
 נוספה אפליקציית Android קלה שבה הבנייה מתבצעת אונליין ב־GitHub Actions. נוספו גם תוכנות Mac מוכנות ל־Apple Silicon ול־Intel. אין צורך להתקין כלי פיתוח במכשיר שעליו מפעילים את התוכנה.
 
 | המכשיר שעליו מפעילים | אופן הבנייה | תוצרים לפי סוג המקור |
@@ -20,147 +22,24 @@
 
 זו גרסת Preview. ה־APK של הלקוח חתום במפתח Debug; עדכון עשוי לדרוש הסרת התקנה קודמת. בדיקות מנועים וממשק אינן בדיקת חשבון GitHub פרטי מלאה עם אסימון אישי; המסלול הזה טרם נבדק מקצה לקצה. התוצרים אינם מופצים כ־ZIP.
 
----
+## Windows — שימוש והגבלות
+הורד AndroidCompiler.exe מלשונית Releases והפעל. בחר סוג מקור ואז גרור תיקייה/ZIP או השתמש בבחירה. במסך הבדיקה בחר מודול, סוג Build ותיקיית יעד. בנייה מתחילה רק לאחר אישור אמון בקוד, ובענן גם אישור העלאה. אין צורך לחלץ ZIP של התוכנה עצמה.
 
-# עדכון לגרסת 0.2
+בנייה מקומית מורידה אוטומטית כלים פרטיים: JDK, Gradle ו־SDK עבור Android; Python 3.12 עם PyInstaller עבור Python; או .NET SDK נתמך. מטמון מקצר בניות חוזרות, אך אין הבטחת אופליין. נדרש Windows 10/11 x64. קובץ התוכנה אינו חתום בתעודת Authenticode מסחרית.
 
-מומלץ להוריד את AndroidCompiler.exe היחיד מלשונית Releases. אין צורך בחילוץ ZIP.
-בעדכון זה חודש הממשק ותוקנו מסלולים שבהם כפתור קימפול לא נתן תגובה ברורה.
-23 בדיקות אוטומטיות ובדיקת פתיחת ה־EXE עברו על Windows ב־GitHub Actions.
-בדיקות שימוש ידניות ובניית APK מלאה על Windows עדיין לא הושלמו.
-ההוראות להלן כוללות גם את מסלול ZIP הישן מגרסת 0.1.
+לוג מקומי כולל חיפוש, סינון, העתקה, שמירה וגלילה אוטומטית. בענן מוצגים שלבי GitHub וקישור ללוג המלא. אין אחוזי התקדמות מומצאים. ״פתח תוצר״ מפעיל את שיוך הקובץ במערכת; Windows אינו מריץ APK או DMG.
 
-# AndroidCompiler — גרסת Preview 0.1
+## אילו פרויקטים נתמכים?
+- Android: פרויקט Gradle עם settings, מודול אפליקציה ו־gradle-wrapper.properties. ערכים דינמיים עשויים להיות לא ידועים לפני Build. Flutter ו־React Native אינם מוכנים אוטומטית ללא הכלים הייחודיים להם.
+- Python: קובץ py ראשי או spec של PyInstaller; requirements.txt ותצורת התקנת פרויקט נתמכים בשורש. קובצי משאבים וייבוא דינמי עשויים לדרוש spec. Windows Python הפרטי אינו כולל Tkinter או קומפיילר C. spec ל־Mac צריך להגדיר BUNDLE.
+- .NET: פרויקט SDK עם יעד יחיד net8.0/net9.0/net10.0. ב־Windows נתמכת גם סיומת windows; ב־Mac אינה נתמכת. Framework ישן, MAUI, workloads מיוחדים ו־NativeAOT אינם נתמכים אוטומטית. ב־Mac בענן זמינים SDK עדכניים מסדרות 8/9/10; global.json שנועל SDK אחר עלול להכשיל בנייה.
 
-תוכנת Desktop לייבוא פרויקט Android, הכנת סביבת Build פרטית והפקת APK.
-**זו גרסת Preview, לא גרסה מסחרית מאושרת.** מנוע הבנייה נבדק בפועל ב־Linux;
-חבילת Windows נוצרה בקימפול צולב, אך לא הורצה על מחשב Windows בסביבה זו.
+## שמירה, פרטיות ואנרגיה
+המקור נשמר במאגר GitHub פרטי. התוצרים בענן נשמרים שבעה ימים; עותק שהורד לתיקייה הנבחרת נשאר במכשיר. מחיקת ענף אינה מבטיחה מחיקת המקור מהיסטוריית Git — יש למחוק את המאגר ב־GitHub כשאין בו צורך.
 
-## שימוש בחבילת Windows
+באנדרואיד יש העלאה, מעקב אחת ל־15 שניות והורדה. אין קומפיילר מקומי ואין נעילת מעבד. בזמן המעקב מוצגת התראה; חסכון סוללה או סגירת האפליקציה יכולים לעצור את המעקב, אך משימת הענן עשויה להמשיך. השימוש עדיין צורך נתונים וסוללה, במיוחד בפרויקטים גדולים. לא נמדדה צריכת אנרגיה על מכשיר פיזי.
 
-1. חלצו את **כל** קובץ AndroidCompiler-Windows-x64.zip לתיקייה מקומית.
-2. פתחו `AndroidCompiler.exe`. השאירו לצדו את התיקיות `runtime` ו־`app`.
-3. בחרו/גררו תיקיית Android או ZIP. אפשר להתחיל מתיקיית `sample` המצורפת.
-4. במסך „מה הבנתי” בדקו מודול, SDK, מזהה אפליקציה וסוג Build.
-5. אשרו שאתם סומכים על הפרויקט ולחצו „התחל Build”.
-6. בהפעלה הראשונה אשרו את רישיונות Android לאחר קריאתם. הכלים יורדים אוטומטית.
-7. בסיום בחרו „פתח תיקיית Output”. נשמרים APK ודוח JSON.
+## בדיקות וקרדיט
+ראוי לקרוא את [דוח הבדיקות](TEST-REPORT.md) ואת [מגבלות הגרסה](RELEASE-NOTES.md). הקוד המקורי לא שונה במהלך בנייה רגילה; סביבת עבודה זמנית אינה Sandbox להרצת קוד לא מהימן.
 
-לא נדרשת התקנת Python, Qt, Android Studio, Java, Gradle או SDK אצל משתמש
-חבילת Windows. נדרש Windows 10/11 x64; אין תמיכה ב־Windows 7 או ARM64 native.
-זהו EXE נייד עם קובצי ריצה נלווים, לא EXE יחיד ולא Installer.
-ה־EXE אינו חתום בתעודת Authenticode מסחרית; אין לעקוף חסימה ארגונית כדי להפעילו.
-
-## מה קיים
-
-- ממשק Qt כהה, עברית/RTL, החלפה לאנגלית, בחירת תיקייה/ZIP ו־Drag & Drop.
-- ניתוח ראשוני ללא הרצת Gradle, זיהוי מודולים והצגת ערכים שאינם ידועים.
-- העתקת הפרויקט לסביבת עבודה; הפרויקט המקורי אינו נכתב במהלך הפעולות הרגילות.
-- ניהול JDK 17/21, הורדת גרסת Gradle מתוך wrapper properties,
-  Android command-line tools, SDK Platforms ו־Build Tools.
-- אימות Hash בהורדות הכלים, Cache קבוע ושימוש ב־Proxy/תעודות מערכת עבור Java.
-- אישור מפורש לפני Build, Logs חיים, שלבי Gradle אמיתיים וביטול תהליך.
-- Debug חתום בחתימת פיתוח; Release יכול להשתמש בחתימת הפרויקט או ב־Keystore
-  שנוצר/נבחר בממשק. Release ללא חתימה מוצג במפורש כלא חתום.
-- zipalign, apksigner sign/verify, אימות מבנה APK וקריאת metadata באמצעות aapt.
-- העתקת כל תוצרי הווריאנטים שנוצרו, כולל APK מפוצלים, לתיקיית Output נפרדת.
-- ניסיון תיקון אחד כאשר מזוהה במדויק חבילת SDK חסרה; אין שינוי אוטומטי בקוד.
-
-## נתונים, ביצועים ובטיחות
-
-הנתונים נשמרים תחת תיקיית AppLocalData של Windows בשם AndroidCompiler
-(לרוב `%LOCALAPPDATA%\AndroidCompiler\AndroidCompiler`). אין צורך ב־PATH גלובלי.
-תיקיית `tools` מכילה את הכלים וה־Cache, `Output` את התוצרים ו־`Logs` את היומנים.
-הכלים והתלויות עשויים לצרוך כמה GB. הורדה ראשונה עשויה לקחת דקות רבות.
-
-תיקיית העבודה הזמנית נשארת זמינה לבנייה חוזרת ונמחקת בעת מעבר לפרויקט חדש או
-סגירה תקינה. סגירה בכוח עלולה להשאיר תיקיות עבודה; ניתן להסירן כשהתוכנה סגורה.
-ה־Cache נשמר בכוונה. Gradle מופעל עם `--no-daemon`, עד שני workers ו־2 GB JVM;
-קומפיילר Kotlin מוגדר לעבוד בתוך תהליך Gradle. בפרויקט גדול ייתכן שצריך יותר RAM.
-
-ZIP נבדק לנתיבי traversal, נתיבי Windows מיוחדים, קישורים, כפילויות,
-מספר קבצים וגודל לא דחוס. קבצי `local.properties` מועתקים בלי נתיבי SDK/NDK/CMake
-מקומיים, והנתיב הפרטי ל־SDK נוסף בעותק. ערכים אחרים נשמרים.
-
-**אין כאן Sandbox לקוד Gradle.** Build הוא הרצת קוד בעל הרשאות המשתמש:
-סקריפטים ותוספים עלולים לגשת לקבצים ולרשת מחוץ לתיקיית העבודה. יש לבנות רק
-פרויקטים מהימנים. הגנת ZIP אינה מבטיחה שפרויקט זדוני בטוח להרצה.
-
-## מגבלות ממשיות
-
-- לא נבדקה הפעלת EXE על Windows, פתיחת Explorer או association לקובצי APK.
-- ניתוח Groovy/Kotlin הוא סטטי ושמרני. Gradle הוא שפה ניתנת לתכנות, ולכן לא
-  ניתן להבטיח לפני הרצה זיהוי מלא של משתנים, custom plugins או כל התלויות.
-- נתמכים פרויקטים רגילים עם settings.gradle(.kts), הצהרות include מילוליות,
-  מודול com.android.application וגרסת Gradle ב־gradle-wrapper.properties.
-  יש תמיכה בכינוי plugin מקטלוג `gradle/libs.versions.toml` ובמיפויי projectDir פשוטים.
-- נדרשת Gradle 7.3 ומעלה; זיהוי Java מעבר ל־21 אינו נתמך. גרסאות וכלים חריגים
-  עשויים להיכשל. אין יצירת קובצי Build חסרים ואין המרה של קוד שאינו פרויקט Android.
-- Flutter, React Native/Node, KMP מורכב, NDK/CMake, מאגרים פרטיים, credentials,
-  custom build types וקונבנציות מורכבות אינם נתמכים אוטומטית באופן מלא.
-- נתמכים Debug ו־Release; פרויקטים עם flavors עשויים להפיק כמה APK.
-- Build ראשוני ותלויות שלא נשמרו דורשים אינטרנט. NetFree/Proxy יכול לחסום שרתי
-  הורדה; התוכנה אינה עוקפת סינון. Proxy עם שם משתמש וסיסמה לא נתמך אוטומטית.
-- רישיונות חדשים שלא אושרו, תנאי ספק משתנים או הגדרות פרויקט חריגות עלולים לעצור Build.
-- אין הבטחה שכל פרויקט תקין ייבנה, ואין תיקון אוטומטי של שגיאות Java/Kotlin.
-- „פתח APK” משתמש בשיוך הקבצים של Windows; הוא אינו מתקין APK על Android.
-- רכיבי הממשק מתורגמים; פלט Gradle, שמות משימות וחלק מהאבחונים נשארים באנגלית.
-
-## בנייה מהמקור — למפתח בלבד
-
-דרוש Python 3.12 x64 במחשב הבנייה; אין צורך בו אצל משתמש ה־EXE.
-
-```powershell
-python -m pip install -r requirements-dev.txt
-python -m pytest -q
-python main.py
-.\packaging\build-windows.ps1
-```
-
-פקודת האריזה מפיקה `dist\AndroidCompiler\AndroidCompiler.exe` ו־ZIP נייד.
-ניתן גם להריץ את workflow המצורף ב־GitHub Actions דרך `workflow_dispatch`.
-הוא לא הופעל בחשבון GitHub כחלק ממשימה זו. בחירת integration ב־workflow מורידה
-כלי Android ומאשרת את רישיונותיהם; יש לקרוא את התנאים לפני בחירה זו.
-
-### שחזור החבילה שנוצרה בקימפול צולב
-
-ה־launcher מקומפל ב־Zig 0.13.0 ל־Windows GUI x64. `packaging/portable.py`
-מצרף CPython embeddable ו־wheels של Windows; ההורדות מתועדות ב־runtime-manifest.json.
-
-```text
-python -m ziglang cc -target x86_64-windows-gnu -Os -municode -Wl,--subsystem,windows packaging/launcher.c -o packaging/AndroidCompiler.exe -luser32
-python packaging/portable.py --downloads downloads --launcher packaging/AndroidCompiler.exe
-```
-
-בתיקיית downloads נדרשים Python 3.12.10 embeddable amd64 ושני wheels בגרסת
-6.8.3: PySide6-Essentials ו־shiboken6, בפורמט cp39-abi3-win_amd64.
-
-## ארכיטקטורה
-
-- `androidcompiler/ui.py` — חלון Qt, Drag & Drop, אישור, חתימה ופעולות תוצאה.
-- `project.py` — Workspace, חילוץ בטוח וניתוח Gradle סטטי.
-- `toolchain.py` — הורדות מאומתות, SDK, רישיונות ו־Cache.
-- `network.py` — Proxy ו־trust store פרטי המבוסס על תעודות מערכת.
-- `runtime.py` — הרצת תהליכים, פלט חי, ביטול ואבחון שגיאות.
-- `build.py` — תזמור Build, תיקון SDK מוגבל, חתימה ואימות APK.
-- `tests/` — בדיקות ממוקדות ובדיקות אינטגרציה אמיתיות לפי בחירה.
-- `packaging/` — launcher C, bootstrap ודרכי אריזה.
-
-לפירוט בדיקות: TEST-REPORT.md. רישיונות רכיבי צד ג': THIRD-PARTY.md.
-הפוסט לגרסת הניסיון נמצא בקובץ FORUM-POST-HE.md.
-
-
-## מדריך וקרדיט
-[מדריך שימוש מפורט](USER-GUIDE-HE.md) זמין גם בתוך התוכנה בכפתור מדריך ועזרה.
-
-קרדיט למוקד המערכות מפורום מתמחים טופ: https://mitmachim.top/user/מוקד-המערכות
-
-
-## גרסה 0.4.0 — בניית APK ו־EXE
-בחר סוג פרויקט במסך הבית: Android, Python או C#/.NET. לאחר ניתוח התיקייה או ה־ZIP בחר קובץ כניסה/מודול ותיקיית יעד. אישור Build מתחיל הורדת כלים לפי הצורך וקימפול מקומי. כל בנייה נשמרת בתת־תיקייה נפרדת. ראה USER-GUIDE-HE.md למגבלות סוגי הפרויקטים. אין המרת APK ל־EXE או להפך.
-
-
-## גרסה 0.5.0 — בנייה ל־Mac דרך GitHub
-התוכנה ממשיכה לפעול ב־Windows. במסך הבית בוחרים Python → Mac או C#/.NET → Mac, מייבאים פרויקט ובוחרים Apple Silicon או Intel ותיקיית יעד. לפני ההעלאה נדרש אישור נפרד וחיבור GitHub באמצעות אסימון classic עם repo ו־workflow שמוזן בתוכנה בלבד. היא יוצרת מאגר פרטי אם חסר ומורידה בסיום DMG. הקוד נשאר בהיסטוריית המאגר עד למחיקתו. חלות מכסות/עלויות Actions של החשבון.
-
-נבדקו בנייה, הפעלה ויצירת DMG לדוגמאות Python ו־.NET על שני סוגי Mac. תהליך החיבור המלא למאגר פרטי באמצעות PAT של משתמש טרם נבדק כאן מקצה לקצה. אין חתימת Developer ID או אימות Apple, ואין תמיכה אוטומטית ב־WPF/WinForms/MAUI. ראו את המדריך המלא בתוכנה.
+קרדיט ל[מוקד המערכות מפורום מתמחים טופ](https://mitmachim.top/user/%D7%9E%D7%95%D7%A7%D7%93-%D7%94%D7%9E%D7%A2%D7%A8%D7%9B%D7%95%D7%AA).

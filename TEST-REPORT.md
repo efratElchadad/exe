@@ -1,3 +1,30 @@
+# 0.6.0 Preview — verification scope (2026-10-05)
+
+The Windows, Mac and Android clients use real build engines. Cloud transport is not yet qualified end-to-end with a real user's private GitHub account. No personal access token was requested or used for that test.
+
+## Executed checks for 0.6
+- 36 Python/Qt regression tests passed on Linux and Windows, covering ZIP safety, project imports, drag/drop events, review/consent, visible failures, log filtering, output-action paths and controlled cloud transport. Transport fixtures are **not compiled binaries** and are not counted as engine evidence.
+- The actual frozen Windows EXE opened and loaded its icon/window. Real Python and .NET sample EXEs were built and executed on Windows; invalid source was tested separately.
+- The actual Mac desktop client was built for arm64 and x64. Each DMG was mounted; the packaged .app was found at the image root and its executable opened the Qt window in offscreen mode. Real Python and .NET sample programs were built, executed and packaged as DMGs on native Mac runners.
+- The native Android APK compiled, installed and ran on an Android API 35 x86_64 emulator. Six instrumentation tests cover screen startup, target selection, validation without starting a build, actual ZIP import through the activity result handler, entry detection, unsafe ZIP rejection and bundled engine/workflow assets.
+- The exact shared cloud worker compiled the wrapped Android sample from source to a real 6,665-byte Debug APK on Linux. APK structure/signature verification and workspace cleanup passed. This checks source-to-APK execution independently of the account connection.
+
+## Limits of the evidence
+No physical-phone battery benchmark, full interactive acceptance on user hardware, real-token private-repository upload/download roundtrip, or real Storage Access Framework output-folder roundtrip has been completed. APK installation uses a CI debug key; production signing, store publication and upgrade compatibility are not qualified. Mac distribution has no Apple notarization. Android folder import and custom keystore signing are not implemented in this preview.
+
+All four platform jobs and the release job succeeded in the final run:
+https://github.com/efratElchadad/exe/actions/runs/37284572301
+
+Built source commit: `82ed02e4407dcd2c3da618e903247c8edf8b5651`.
+Published release: https://github.com/efratElchadad/exe/releases/tag/v0.6.0-preview.14
+
+Final artifacts: Android APK 305,874 bytes; Windows EXE 40,659,691 bytes; Mac arm64 DMG 34,949,714 bytes; Mac x64 DMG 37,773,037 bytes. SHA256.txt accompanies the release.
+The final emulator screenshot was retrieved and visually inspected: Hebrew text, dark interface, project selector, icon and ZIP import control render correctly. Instrumentation cleanup uninstalls the app, so CI reinstalls the actual APK before the standalone launch capture.
+
+---
+
+## Historical reports (previous versions, not current release status)
+
 # Preview 0.2 regression update — 2026-10-04
 
 23 automated tests passed locally on Linux, including three new regressions:
