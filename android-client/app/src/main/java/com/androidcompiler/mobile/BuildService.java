@@ -15,6 +15,7 @@ public class BuildService extends Service {
   startForeground(1,notice("מתחבר לבנייה בענן"));running=true;cancelled=false;String token=intent.getStringExtra("token");boolean resume=intent.getBooleanExtra("resume",false);
   thread=new Thread(()->{api=new CloudApi(token==null?"":token);try{
    state=new JSONObject(new String(Files.readAllBytes(new File(getFilesDir(),"job.json").toPath()),java.nio.charset.StandardCharsets.UTF_8));
+   if(!resume)new File(getFilesDir(),"build.log").delete();
    if(resume){repo=state.getString("repository");runId=state.optLong("runId");}else upload();
    watch();download();update("הבנייה הסתיימה — הקבצים נשמרו בתיקיית היעד");
   }catch(Exception e){if(cancelled){cancelRemote();update("המעקב בוטל. בדוק את GitHub אם ביטול הבנייה מרחוק לא אושר.");}else update("הפעולה נכשלה: "+e.getMessage()+". אפשר לבדוק את הבנייה הקודמת או לפתוח GitHub.");}

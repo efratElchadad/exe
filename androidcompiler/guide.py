@@ -3,7 +3,7 @@ GUIDE_HE='''# המדריך ל־AndroidCompiler
 ## האם צריך אינטרנט?
 כן, בהכנה הראשונה: להורדת Java, Gradle, Android SDK ותלויות הפרויקט. הכלים נשמרים במחשב. בנייה חוזרת עשויה להסתפק במטמון, אבל אין הבטחה לפעולה ללא אינטרנט: גרסאות חדשות, תלויות חסרות, תלויות דינמיות וסקריפטים של הפרויקט יכולים לדרוש רשת. אין כרגע מתג Offline שמונע גישה לרשת. אין צורך ב־Android Studio.
 
-הקימפול מתבצע במחשב שלך. התוכנה אינה מעלה את הפרויקט לשירות קימפול. סקריפטים ותוספים של הפרויקט עצמם יכולים לגשת לרשת. ברשת מסוננת ייתכן שתידרש פתיחת אתרי ההורדות; האפליקציה אינה עוקפת חסימות.
+ב־Windows ניתן לבחור בנייה מקומית או בענן. ב־Mac וב־Android הבנייה בענן. במצב ענן קוד המקור מועלה למאגר GitHub פרטי רק לאחר אישור מפורש. סקריפטים ותוספים של הפרויקט עצמם יכולים לגשת לרשת. ברשת מסוננת ייתכן שתידרש פתיחת אתרי ההורדות; האפליקציה אינה עוקפת חסימות.
 ## 1. בחירת פרויקט
 **בחר תיקייה** — בחר את תיקיית פרויקט Android. התוכנה מעתיקה אותה לסביבת עבודה זמנית.
 
@@ -51,7 +51,7 @@ GUIDE_HE='''# המדריך ל־AndroidCompiler
 '''+f'\n[לפרופיל מוקד המערכות]({CREDIT_URL})\n'
 GUIDE_EN='''# AndroidCompiler guide
 ## Internet and privacy
-First setup needs internet to download Java, Gradle, Android SDK and project dependencies. Cached builds may work without a connection, but new versions, missing or dynamic dependencies and project scripts can still need the network. There is no enforced Offline switch. Android Studio is not required. Builds run locally; this app does not upload projects to a build service. Project scripts can access the network. Filtering services may require download domains to be allowed.
+First setup needs internet to download Java, Gradle, Android SDK and project dependencies. Cached builds may work without a connection, but new versions, missing or dynamic dependencies and project scripts can still need the network. There is no enforced Offline switch. Android Studio is not required. Windows supports local or cloud builds. Mac and Android clients use cloud builds. Cloud mode uploads source to a private GitHub repository only after explicit consent. Project scripts can access the network. Filtering services may require download domains to be allowed.
 ## Import and review
 Choose folder or Choose ZIP, or drag either into the drop area. The app creates a temporary working copy and checks ZIP extraction paths. Static analysis finds Gradle settings, application modules and known configuration values. Dynamic values are resolved during Build.
 
@@ -104,11 +104,26 @@ GUIDE_HE += """
 
 בסיום יורד DMG לתיקיית היעד. פותחים אותו ב־Mac ולא ב־Windows. Python נארז ל־app; קובץ spec צריך להגדיר BUNDLE מתאים ל־Mac. .NET מייצר תוכנת macOS עצמאית; ממשק גרפי תלוי במסגרת שבפרויקט. WPF/WinForms, יעד windows ו־MAUI אינם נתמכים אוטומטית. יעד יחיד net8.0/net9.0/net10.0 נדרש ל־.NET.
 
-אין חתימת Developer ID או Apple Notarization. לכן המוצר אינו חבילת הפצה מאומתת של Apple. בנייה מוצלחת אינה מבטיחה שכל פונקציה בפרויקט תואמת ל־Mac. קובצי APK ו־EXE ממשיכים להיבנות מקומית.
+אין חתימת Developer ID או Apple Notarization. לכן המוצר אינו חבילת הפצה מאומתת של Apple. בנייה מוצלחת אינה מבטיחה שכל פונקציה בפרויקט תואמת ל־Mac. APK ו־EXE יכולים להיבנות מקומית ב־Windows או בענן. במחשב Mac הם נבנים בענן.
 """
 GUIDE_EN += """
 ## Mac cloud builds
 Choose Python → Mac or C#/.NET → Mac, select Intel/Apple Silicon and an output folder. A separate dialog requires explicit source-upload consent and a classic GitHub token with repo/workflow scopes. Enter the token in the app, never in chat; it is used in memory and is not sent to the build runner. The private repository is created if missing; public repositories are rejected. Source stays in Git history until repository deletion. Inspect source for secrets before upload. GitHub Actions quotas and charges apply. Source ZIP limit: 25 MiB.
 Live GitHub step status is shown; full command logs are available via the Actions URL in the log, not streamed line-by-line. Cancel requests remote cancellation; if unconfirmed, check Actions manually.
-The output is a DMG to open on macOS. Python produces an app bundle (custom specs need BUNDLE). .NET produces a self-contained macOS program, not an automatically generated GUI; WPF/WinForms, Windows targets and MAUI are not supported. Single net8.0/net9.0/net10.0 targets only. No Developer ID signature or Apple notarization is included. Successful compilation does not guarantee all project functions work on Mac. APK/EXE builds remain local.
+The output is a DMG to open on macOS. Python produces an app bundle (custom specs need BUNDLE). .NET produces a self-contained macOS program, not an automatically generated GUI; WPF/WinForms, Windows targets and MAUI are not supported. Single net8.0/net9.0/net10.0 targets only. No Developer ID signature or Apple notarization is included. Successful compilation does not guarantee all project functions work on Mac. APK/EXE can be built locally on Windows or in the cloud. On Mac they use the cloud.
+"""
+
+GUIDE_HE += """
+## בנייה בענן מ־Windows, Mac ו־Android
+ב־Windows סמן **בנייה בענן** לפני ייבוא הפרויקט. ב־Mac המצב מופעל תמיד. בחר יעד APK, EXE או Mac לפי סוג המקור. הענן צריך אינטרנט לאורך ההעלאה, המעקב וההורדה, חשבון GitHub ואסימון classic עם repo ו־workflow. בנייה אינה המרה אוניברסלית: הקוד חייב להתאים לפלטפורמה.
+
+באפליקציית Android בחר ZIP עד 12 MiB, קובץ כניסה/מודול ותיקיית יעד. בדיקת ZIP מקומית מזהה קבצים ונתיבים בלבד; ניתוח Gradle מלא נעשה בענן. **בדוק / הורד בנייה קודמת** מאפשר לחזור לאחר סגירת האפליקציה עם הזנת אסימון מחדש. **פתח לוגים מלאים** פותח GitHub. **בטל** מבקש ביטול מרחוק. ניתן לשמור תוצרים עד 1 GiB. אין כלי קומפילציה בטלפון ואין מצב אופליין; ייבוא תיקייה וחתימה אישית אינם כלולים בגרסת Android.
+
+בענן נעשה שימוש במכונות עבודה זמניות; אין הבטחה למטמון שנשמר בין בניות. לכן כלים ותלויות עלולים לרדת שוב. תוצרים זמינים ב־GitHub למשך 7 ימים, נוסף לעותק שהורד למכשיר. שמירת קוד בפרויקט פרטי אינה מוחקת אותו אוטומטית לאחר הבנייה.
+"""
+GUIDE_EN += """
+## Shared cloud builds and Android client
+On Windows enable **Cloud build** before importing. Mac always uses the cloud. Choose APK, EXE or Mac to match your source. Internet, GitHub Actions and a classic repo/workflow token are required. This is compilation, not universal source conversion.
+The native Android client accepts source ZIPs up to 12 MiB and lets you choose an entry file and destination folder. Local ZIP inspection is preliminary; full Gradle analysis runs in the cloud. Resume a previous job with a fresh token if Android closes the app. Full logs open in GitHub. Downloaded artifacts are limited to 1 GiB. Folder imports and custom signing are not included in the Android client. No development tools or offline compiler run on the phone.
+Cloud runners are temporary, so tools and dependencies may download again. GitHub artifacts expire after 7 days; saved device copies remain. Source stays in private Git history until repository deletion.
 """

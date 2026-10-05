@@ -31,4 +31,13 @@ public class ClientTest {
   try(InputStream in=c.getAssets().open("workflow.yml")){String workflow=CloudApi.read(in);assertTrue(workflow.contains("RUNNER"));assertTrue(workflow.contains("cloud_job.py"));assertFalse(workflow.contains("Bearer"));}
   Set<String> names=new HashSet<>();try(ZipInputStream z=new ZipInputStream(c.getAssets().open("cloud-engine.zip"))){ZipEntry e;while((e=z.getNextEntry())!=null)names.add(e.getName());}assertTrue(names.contains("androidcompiler/cloud_job.py"));assertTrue(names.contains("androidcompiler/build.py"));
  }
+ @Test public void importsActualZipThroughActivityResult()throws Exception{
+  File f=zip("Project/app/build.gradle.kts");java.util.concurrent.atomic.AtomicBoolean ready=new java.util.concurrent.atomic.AtomicBoolean(false);
+  try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
+   s.onActivity(a->{a.target.setSelection(0);a.onActivityResult(1,android.app.Activity.RESULT_OK,new android.content.Intent().setData(android.net.Uri.fromFile(f)));});
+   long end=System.currentTimeMillis()+10000;
+   do{Thread.sleep(100);s.onActivity(a->ready.set(a.ready));}while(!ready.get()&&System.currentTimeMillis()<end);
+   assertTrue("ZIP import did not complete",ready.get());s.onActivity(a->{assertEquals("Project/app/build.gradle.kts",a.entry.getSelectedItem());a.showLog();});
+  }finally{f.delete();}
+ }
 }
