@@ -109,6 +109,7 @@ jobs:
           disable-animations: true
           script: |
             gradle -p android-client :app:connectedDebugAndroidTest --stacktrace
+            adb install -r android-client/app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -W -n com.androidcompiler.mobile/.MainActivity
             sleep 2
             adb exec-out screencap -p > android-client/app/build/reports/androidTests/android-screen.png
