@@ -1,10 +1,20 @@
-# AndroidCompiler 0.5.0 Preview
+# AndroidCompiler 0.6.0 Preview
 
-- Optional macOS cloud builds for Python and cross-platform SDK-style .NET projects.
-- Select Apple Silicon or Intel; download the resulting DMG into your chosen output directory.
-- Explicit upload confirmation; private user-owned GitHub repository required, public repositories rejected.
-- A classic GitHub token with repo/workflow permissions is entered per job, never saved to preferences or passed to runners.
-- Source remains in private Git history. Actions quotas/charges apply. 25 MiB compressed-source limit.
-- Real remote step status and Actions log link; no line-by-line remote log streaming.
-- No Apple Developer ID signing or notarization. Windows-specific frameworks are not portable. .NET output is a macOS executable, not an automatically generated app GUI.
-- APK and EXE continue to build locally.
+- אפליקציית Android חדשה וקלה: ZIP → בנייה ב־GitHub Actions → שמירת התוצרים בתיקייה נבחרת. אין צורך בכלי פיתוח בטלפון.
+- תוכנת Mac מוכנה להתקנה ב־DMG, ל־Apple Silicon ול־Intel. הבניות מתבצעות בענן.
+- Windows ממשיך לתמוך בבנייה מקומית עם הורדת כלים אוטומטית; נוספה אפשרות ענן גם ל־APK ול־EXE.
+- סוגי מקור נתמכים: פרויקט Android ל־APK; Python או .NET נתמך ל־Windows EXE או Mac. אין המרה בין קבצים מוכנים או התאמה אוטומטית של קוד בין מערכות.
+
+## שימוש בענן
+נדרשים אינטרנט וחשבון GitHub עם Actions פעיל. מזינים באפליקציה אסימון classic עם repo ו־workflow (לא בצ׳אט). האסימון אינו נשמר לדיסק. הקוד מועלה רק לאחר אישור, נשאר במאגר פרטי וייתכנו עלויות לפי המכסה בחשבון. יש להימנע מהעלאת סודות בתוך הפרויקט.
+
+Android: בחר סוג מקור, ZIP (עד 12 MiB), מודול/קובץ כניסה, תיקיית יעד ואשר Build. אם האפליקציה נסגרה, ״בדוק בנייה קודמת״ ממשיך את המעקב לאחר הזנה מחדש של האסימון. הלוג המלא זמין ב־GitHub; באפליקציה מוצגים שלבים אמיתיים ללא אחוזים מומצאים. אין מצב אופליין.
+
+## מגבלות Preview
+- Android 8 ומעלה. ה־APK של התוכנה חתום במפתח Debug של הבנייה; עדכון עשוי לדרוש הסרת הגרסה הקודמת. טרם נחתם להפצה בחנות.
+- Mac: התוכנה והתוצרים ללא חתימת Developer ID או notarization. עשוי להידרש אישור פתיחה בהגדרות האבטחה. נבדק על macOS 15 בשתי ארכיטקטורות.
+- Android Release בענן עשוי להיות לא חתום; השתמשו ב־Debug לבדיקה. חתימה אישית לא כלולה בלקוח Android.
+- תוצרים באנדרואיד עד 1 GiB. ייבוא תיקייה באנדרואיד אינו כלול — יש לבחור ZIP של המקור.
+- נבדקים מנועי הבנייה האמיתיים והממשקים; מסלול חשבון GitHub פרטי מלא עם אסימון אישי טרם נבדק מקצה לקצה. בדיקות התעבורה משתמשות בתשובות מבוקרות.
+
+קרדיט למוקד המערכות מפורום מתמחים טופ.

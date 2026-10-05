@@ -1,4 +1,4 @@
-name: Build Windows EXE and publish Preview
+name: Build Windows, Mac and Android clients
 on:
   push:
     branches: [main]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: windows-preview
+  group: multiplatform-preview
   cancel-in-progress: false
 jobs:
   mac_verify:
@@ -25,8 +25,13 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - run: python packaging/test_mac.py
+      - run: python -m pip install -r requirements-dev.txt Pillow
+      - run: python packaging/package_mac.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AndroidCompiler-${{ matrix.runner }}
+          path: dist/*.dmg
   windows:
-    needs: mac_verify
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -41,6 +46,7 @@ jobs:
           java-version: '17'
       - name: Install build dependencies
         run: python -m pip install -r requirements-dev.txt
+      - run: python packaging/prepare_assets.py
       - name: Run regression tests on Windows
         env:
           QT_QPA_PLATFORM: offscreen
@@ -49,6 +55,7 @@ jobs:
         env:
           PYTHONPATH: .
         run: python packaging/test_desktop_windows.py
+      - run: python packaging/prepare_assets.py
       - name: Create single-file Windows EXE
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --paths . --name AndroidCompiler --add-data "androidcompiler/mac_worker.py;androidcompiler" --icon androidcompiler/assets/app.ico --add-data "androidcompiler/assets;androidcompiler/assets" --add-data "LICENSES;LICENSES" --add-data "THIRD-PARTY.md;." packaging/entry.py
       - name: Start the actual EXE and verify its window
@@ -68,10 +75,65 @@ jobs:
             dist/SHA256.txt
             smoke-test.json
             test-results.xml
-      - name: Publish downloadable EXE
-        shell: pwsh
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - run: python packaging/prepare_assets.py
+      - name: Build Android client and instrumentation
+        run: gradle -p android-client :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+      - name: Enable hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Launch and verify on a real Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: gradle -p android-client :app:connectedDebugAndroidTest --stacktrace
+      - name: Prepare directly installable Preview APK
+        run: |
+          mkdir -p dist
+          cp android-client/app/build/outputs/apk/debug/app-debug.apk dist/AndroidCompiler-Android.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/AndroidCompiler-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AndroidCompiler-Android
+          path: dist/*.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Android-test-report
+          path: android-client/app/build/reports/androidTests/
+  release:
+    needs: [mac_verify, windows, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: AndroidCompiler-*
+          path: release
+          merge-multiple: true
+      - name: Publish tested clients
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v0.5.0-preview.${{ github.run_number }}" dist/AndroidCompiler.exe dist/SHA256.txt --target "${{ github.sha }}" --title "AndroidCompiler 0.5.0 Preview" --prerelease --notes-file RELEASE-NOTES.md
-          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
+          cd release
+          sha256sum *.exe *.dmg *.apk > SHA256.txt
+          gh release create "v0.6.0-preview.${{ github.run_number }}" *.exe *.dmg *.apk SHA256.txt --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "AndroidCompiler 0.6.0 Preview — Windows, Mac & Android" --prerelease --notes-file ../RELEASE-NOTES.md

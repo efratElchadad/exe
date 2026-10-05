@@ -1,0 +1,12 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+ <uses-permission android:name="android.permission.INTERNET"/>
+ <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+ <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+ <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+ <application android:theme="@style/AppTheme" android:label="AndroidCompiler" android:icon="@drawable/app_logo" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="false">
+  <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize">
+   <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity>
+  <service android:name=".BuildService" android:foregroundServiceType="dataSync" android:exported="false"/>
+ </application>
+</manifest>

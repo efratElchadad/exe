@@ -9,3 +9,10 @@ integration/
 *.p12
 *.log
 *.spec
+
+.gradle/
+androidcompiler/assets/cloud-engine.zip
+androidcompiler/assets/app.icns
+android-client/app/src/main/assets/
+android-client/app/src/main/res/drawable/app_logo.png
+smoke-test.json

@@ -1,0 +1,18 @@
+"""Build, launch and package the real desktop client on each native Mac runner."""
+from pathlib import Path
+import json,subprocess,sys,platform
+from PIL import Image
+root=Path(__file__).resolve().parents[1]
+def run(*args):subprocess.run([str(a) for a in args],cwd=root,check=True)
+run(sys.executable,'packaging/prepare_assets.py')
+icon=root/'androidcompiler/assets/app.icns'
+Image.open(root/'androidcompiler/assets/app.png').save(icon,format='ICNS')
+run(sys.executable,'-m','PyInstaller','--noconfirm','--clean','--windowed','--onedir','--paths','.','--name','AndroidCompiler','--icon',icon,'--add-data','androidcompiler/assets:androidcompiler/assets','--add-data','androidcompiler/mac_worker.py:androidcompiler','--add-data','LICENSES:LICENSES','--add-data','THIRD-PARTY.md:.','packaging/entry.py')
+app=root/'dist/AndroidCompiler.app'
+run(app/'Contents/MacOS/AndroidCompiler','--smoke-test')
+result=json.loads((root/'smoke-test.json').read_text())
+assert result['opened'] and result['frozen'] and result['icon_loaded']
+logical=sum(p.lstat().st_size for p in app.rglob('*') if not p.is_symlink())
+mb=max(128,(logical*2+1024**2-1)//1024**2+64)
+arch='arm64' if platform.machine()=='arm64' else 'x64'
+run('hdiutil','create','-volname','AndroidCompiler','-fs','HFS+','-size',str(mb)+'m','-srcfolder',app,'-ov','-format','UDZO',root/f'dist/AndroidCompiler-Mac-{arch}.dmg')

@@ -1,0 +1,58 @@
+package com.androidcompiler.mobile;
+import android.app.*;import android.content.*;import android.content.res.ColorStateList;import android.graphics.Color;import android.net.Uri;import android.os.*;import android.provider.*;import android.view.*;import android.widget.*;import android.text.InputType;
+import org.json.*;import java.io.*;import java.nio.file.*;import java.util.*;import java.util.concurrent.*;
+public class MainActivity extends Activity {
+ final int BG=0xff0b1423,FG=0xffe5eefb,ACCENT=0xff45ddd0;LinearLayout body;Spinner target,entry,arch,kind;TextView status,source,destination;Button build,resume;Uri output;boolean ready=false;ExecutorService io=Executors.newSingleThreadExecutor();Handler handler=new Handler(Looper.getMainLooper());Runnable ticker;
+ String[] targets={"Android → APK","Python → EXE","C# / .NET → EXE","Python → Mac","C# / .NET → Mac"};
+ String engine(){int i=target.getSelectedItemPosition();return i==0?"android":i==1||i==3?"python":"dotnet";}
+ String platform(){int i=target.getSelectedItemPosition();return i==0?"apk":i<=2?"windows":"mac";}
+ int dp(int x){return (int)(x*getResources().getDisplayMetrics().density);}
+ TextView text(String s,int size){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(FG);t.setPadding(0,dp(8),0,dp(8));body.addView(t);return t;}
+ Button button(String title,Runnable action){Button b=new Button(this);b.setText(title);b.setTextColor(BG);b.setBackgroundTintList(ColorStateList.valueOf(ACCENT));body.addView(b,new LinearLayout.LayoutParams(-1,dp(52)));b.setOnClickListener(v->{try{action.run();}catch(Exception e){error(e.getMessage());}});return b;}
+ Spinner spinner(String[] items){Spinner s=new Spinner(this);ArrayAdapter<String>a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,items);s.setAdapter(a);body.addView(s,new LinearLayout.LayoutParams(-1,dp(52)));return s;}
+ public void onCreate(Bundle saved){super.onCreate(saved);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);
+  ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(BG);scroll.setFillViewport(true);body=new LinearLayout(this);body.setOrientation(1);body.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);body.setPadding(dp(22),dp(25),dp(22),dp(25));scroll.addView(body);setContentView(scroll);
+  scroll.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});
+  ImageView logo=new ImageView(this);logo.setImageResource(com.androidcompiler.mobile.R.drawable.app_logo);body.addView(logo,new LinearLayout.LayoutParams(-1,dp(100)));
+  text("AndroidCompiler",28);text("קוד מקור נכנס. אפליקציה יוצאת.",19);text("בנייה בענן · בלי כלי פיתוח בטלפון · 0.6.0 Preview",13);
+  target=spinner(targets);arch=spinner(new String[]{"Apple Silicon · arm64","Intel · x64"});kind=spinner(new String[]{"Debug","Release"});
+  source=text("בחר ZIP של פרויקט מקור, עד 12 MiB",14);button("בחר פרויקט ZIP",()->{if(BuildService.running){error("יש להמתין או לבטל את הבנייה");return;}Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,1);});
+  text("מה הבנתי — בחר מודול או קובץ כניסה",18);entry=spinner(new String[]{"טרם נבחר פרויקט"});
+  target.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,View v,int i,long id){arch.setVisibility(i>=3?View.VISIBLE:View.GONE);if(new File(getFilesDir(),"source.zip").exists()&&!BuildService.running)analyze();}});
+  destination=text("תיקיית היעד טרם נבחרה",14);String stored=getPreferences(0).getString("destination","");if(!stored.isEmpty()){output=Uri.parse(stored);destination.setText("תיקיית יעד שמורה");}
+  button("בחר תיקיית יעד",()->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE),2));
+  build=button("בדיקה ואישור Build",()->credentials(false));resume=button("בדוק / הורד בנייה קודמת",()->credentials(true));button("בטל בנייה פעילה",()->{if(BuildService.running)startService(new Intent(this,BuildService.class).setAction("cancel"));else error("אין מעקב פעיל. אפשר לפתוח GitHub ולבטל שם.");});
+  status=text("מוכן לייבוא",16);button("פתח לוגים מלאים ב־GitHub",()->open(getSharedPreferences("ui",0).getString("url","https://github.com/")));button("פתח תיקיית תוצרים",()->{String u=getSharedPreferences("ui",0).getString("output","");if(u.isEmpty()){error("אין עדיין תוצרים");return;}Intent i=new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(u),DocumentsContract.Document.MIME_TYPE_DIR).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(i);});
+  button("מדריך ועזרה",()->new AlertDialog.Builder(this).setTitle("איך משתמשים?").setMessage("1. בחר סוג פרויקט ו־ZIP.\n2. בחר קובץ כניסה ותיקיית יעד.\n3. אשר את העלאת הקוד וחבר GitHub.\n4. הבנייה בענן; בסיום התוצרים נשמרים בתיקיית Build חדשה.\n\nנדרש אסימון GitHub classic עם repo ו־workflow. הזן אותו רק באפליקציה, לא בצ׳אט. הוא אינו נשמר. הקוד נשאר במאגר פרטי, וייתכן חיוב לפי מכסת Actions.\n\nאם Android סגר את האפליקציה, הבנייה בענן עשויה להמשיך: לחץ בדוק בנייה קודמת והזן שוב אסימון. המעקב בודק מצב כל 15 שניות, בלי נעילת מעבד.\n\nאין המרת APK ל־EXE. Python 3.12 ו־.NET 8–10 נתמכים במסלולים המוגדרים; קוד חייב להתאים למערכת היעד. Mac דורש פתיחת DMG במחשב Mac. אין חתימת Apple. Release של Android עלול להישאר לא חתום. חתימה אישית וייבוא תיקייה אינם כלולים בגרסת Android זו.\n\nקרדיט: מוקד המערכות · מתמחים טופ").setPositiveButton("סגור",null).show());
+  button("מוקד המערכות · מתמחים טופ ↗",()->open("https://mitmachim.top/user/%D7%9E%D7%95%D7%A7%D7%93-%D7%94%D7%9E%D7%A2%D7%A8%D7%9B%D7%95%D7%AA"));
+  ticker=()->{status.setText(getSharedPreferences("ui",0).getString("status","מוכן לייבוא"));build.setEnabled(!BuildService.running);resume.setEnabled(!BuildService.running);handler.postDelayed(ticker,1500);};
+ }
+ void open(String url){startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}
+ void error(String message){new AlertDialog.Builder(this).setTitle("AndroidCompiler").setMessage(message).setPositiveButton("סגור",null).show();}
+ protected void onResume(){super.onResume();if(ticker!=null)handler.post(ticker);}
+ protected void onPause(){super.onPause();handler.removeCallbacksAndMessages(null);}
+ protected void onDestroy(){super.onDestroy();io.shutdown();}
+ protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;
+  if(req==2){output=data.getData();try{getContentResolver().takePersistableUriPermission(output,data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION));getPreferences(0).edit().putString("destination",output.toString()).apply();destination.setText("נבחרה תיקיית יעד");}catch(Exception e){error(e.getMessage());}return;}
+  if(req==1){Uri uri=data.getData();ready=false;source.setText("קורא את ה־ZIP…");io.execute(()->{File tmp=new File(getFilesDir(),"source.tmp");try(InputStream in=getContentResolver().openInputStream(uri);OutputStream out=new FileOutputStream(tmp)){byte[] b=new byte[65536];int n;long size=0;while((n=in.read(b))!=-1){if((size+=n)>12L*1024*1024)throw new IOException("מגבלת ה־ZIP באנדרואיד היא 12 MiB");out.write(b,0,n);}Files.move(tmp.toPath(),new File(getFilesDir(),"source.zip").toPath(),StandardCopyOption.REPLACE_EXISTING);runOnUiThread(this::analyze);}catch(Exception e){tmp.delete();runOnUiThread(()->error(e.getMessage()));}});}
+ }
+ void analyze(){String eng=engine();ready=false;io.execute(()->{try{List<String> entries=SourceZip.inspect(new File(getFilesDir(),"source.zip"),eng);runOnUiThread(()->{entry.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,entries));source.setText("זוהה ZIP · "+eng+" · "+entries.size()+" קובצי כניסה אפשריים. אימות מלא יבוצע בענן.");ready=eng.equals(engine());});}catch(Exception e){runOnUiThread(()->{source.setText(e.getMessage());ready=false;});}});}
+ void credentials(boolean previous){
+  if(BuildService.running)return;if(!previous&&(!ready||output==null)){error("יש לבחור פרויקט ותיקיית יעד");return;}
+  if(previous&&!new File(getFilesDir(),"job.json").exists()){error("אין בנייה קודמת");return;}
+  LinearLayout form=new LinearLayout(this);form.setOrientation(1);form.setPadding(dp(20),dp(10),dp(20),dp(10));TextView explanation=new TextView(this);explanation.setText("קוד הפרויקט יישלח ל־GitHub פרטי ויישאר בהיסטוריית המאגר. בדוק שאין בו סודות. חלות מכסות ועלויות Actions. אסימון classic עם repo ו־workflow יוחזק בזיכרון בלבד.");form.addView(explanation);
+  EditText repo=new EditText(this);repo.setSingleLine();repo.setHint("שם מאגר פרטי");repo.setText("androidcompiler-cloud-builds");form.addView(repo);repo.setVisibility(previous?View.GONE:View.VISIBLE);
+  EditText token=new EditText(this);token.setHint("GitHub token");token.setSingleLine();token.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);form.addView(token);
+  Button settings=new Button(this);settings.setText("יצירת אסימון ב־GitHub");settings.setOnClickListener(v->open("https://github.com/settings/tokens/new"));form.addView(settings);
+  CheckBox consent=new CheckBox(this);consent.setText(previous?"אני מאשר גישה לבנייה הקודמת והורדת התוצרים":"אני מאשר העלאת כל קוד הפרויקט והרצתו בענן");form.addView(consent);
+  CheckBox sdk=new CheckBox(this);sdk.setText("קראתי ואני מסכים לתנאי Android SDK");boolean needsSdk=!previous&&platform().equals("apk");sdk.setVisibility(needsSdk?View.VISIBLE:View.GONE);form.addView(sdk);
+  if(needsSdk){Button terms=new Button(this);terms.setText("קרא תנאי Android SDK");terms.setOnClickListener(v->open("https://developer.android.com/studio/terms"));form.addView(terms);}
+  AlertDialog dialog=new AlertDialog.Builder(this).setTitle("אישור Build בענן").setView(form).setNegativeButton("חזרה",null).setPositiveButton("התחל",null).create();dialog.setOnShowListener(d->dialog.getButton(-1).setOnClickListener(v->{
+   if(!consent.isChecked()||token.getText().toString().trim().isEmpty()||(needsSdk&&!sdk.isChecked())){error("נדרשים אסימון ואישור לפני תחילת העבודה");return;}
+   try{if(!previous){JSONObject cfg=new JSONObject().put("target",platform()).put("engine",engine()).put("entry",entry.getSelectedItem().toString()).put("kind",kind.getSelectedItem().toString()).put("accept_android_licenses",sdk.isChecked());JSONObject state=new JSONObject().put("repoName",repo.getText().toString().trim()).put("target",platform()).put("arch",arch.getSelectedItemPosition()==0?"arm64":"x64").put("destination",output.toString()).put("config",cfg);Files.write(new File(getFilesDir(),"job.json").toPath(),state.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+    if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},3);
+    Intent intent=new Intent(this,BuildService.class).putExtra("token",token.getText().toString().trim()).putExtra("resume",previous);token.setText("");startForegroundService(intent);dialog.dismiss();
+   }catch(Exception e){error(e.getMessage());}
+  }));dialog.show();
+ }
+}
