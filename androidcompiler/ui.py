@@ -307,7 +307,7 @@ class Window(QMainWindow):
         self.busy(self.t('מכין סביבת Build','Preparing build environment'))
         def work(job):
             runner=Runner(job.line.emit,job.stage.emit,job.cancel)
-            if cloud:return CloudBuilder(self.base,runner,*cloud).build(self.project,module,kind,output,arch)
+            if cloud:return CloudBuilder(self.base,runner,*cloud).build(self.project,module,kind,output,arch,windowed)
             if hasattr(self.project,'engine'):return DesktopBuilder(self.base,runner).build(self.project,module,kind,output,windowed)
             return BuildManager(self.base,runner,job.consent).build(self.project,module,kind,signing,output_root=output)
         self.launch(work,self.completed)

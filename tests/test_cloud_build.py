@@ -30,11 +30,11 @@ def test_private_cloud_routes_preserve_companions(tmp_path,monkeypatch,target,ar
             z.writestr('Application/resources/settings.json','{}')
     monkeypatch.setattr(cloud,'download_artifact',download)
     try:
-        results=cloud.build(p,p.modules[0],'Release',tmp_path/'output',arch)
+        results=cloud.build(p,p.modules[0],'Release',tmp_path/'output',arch,windowed=True)
         assert (Path(results[0]['outputDirectory'])/'Application/resources/settings.json').is_file()
         assert results[0]['type']=='Cloud' and cloud.token==''
         assert host.encode() in blobs[-1]
-        config=json.loads(blobs[-2]);assert config['entry']=='main.py' and config['target']==target
+        config=json.loads(blobs[-2]);assert config['entry']=='main.py' and config['target']==target and config['windowed'] is True
         assert 'SECRET' not in json.dumps(calls)
     finally:w.close()
 

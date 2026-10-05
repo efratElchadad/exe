@@ -43,10 +43,10 @@ jobs:
 '''
 
 class CloudBuilder(MacCloud):
-    def build(self,project,module,kind,output_root,arch='arm64'):
-        try:return self._build(project,module,kind,output_root,arch)
+    def build(self,project,module,kind,output_root,arch='arm64',windowed=False):
+        try:return self._build(project,module,kind,output_root,arch,windowed)
         finally:self.token=''
-    def _build(self,project,module,kind,output_root,arch):
+    def _build(self,project,module,kind,output_root,arch,windowed):
         target=project.cloud_target
         if Path(output_root).resolve().is_relative_to(project.workspace.resolve()):raise ValueError('Choose an output directory outside the temporary workspace')
         if target not in ('apk','windows','mac') or arch not in ('arm64','x64'):raise ValueError('Invalid cloud target')
@@ -64,7 +64,7 @@ class CloudBuilder(MacCloud):
         except FileNotFoundError:repo=self.api('/user/repos',{'name':self.repo_name,'private':True,'auto_init':True})
         if not repo.get('private'):raise ValueError('A private build repository is required')
         head=self.api('/repos/'+self.repo+'/git/ref/heads/'+repo.get('default_branch','main'))['object']['sha']
-        cfg={'target':target,'engine':engine,'entry':module.name,'kind':kind,'accept_android_licenses':target=='apk'}
+        cfg={'target':target,'engine':engine,'entry':module.name,'kind':kind,'accept_android_licenses':target=='apk','windowed':bool(windowed)}
         files={'source.zip':archive.read_bytes(),'engine.zip':Path(__file__).with_name('assets').joinpath('cloud-engine.zip').read_bytes(),'build-config.json':json.dumps(cfg).encode(),'.github/workflows/build.yml':workflow(target,arch).encode()}
         tree=[]
         for name,data in files.items():tree.append({'path':name,'type':'blob','mode':'100644','sha':self.blob(data)})
@@ -98,7 +98,7 @@ class CloudBuilder(MacCloud):
                 suffix={'apk':'.apk','windows':'.exe','mac':'.dmg'}[target]
                 outputs=list(dest.rglob('*'+suffix))
                 if not outputs:raise ValueError('No expected output was found')
-                results=[{'path':str(p),'name':p.stem,'type':'Cloud','engine':engine,'variant':target+' / '+arch,'bytes':p.stat().st_size,'run_url':url,'outputDirectory':str(dest)} for p in outputs]
+                results=[{'path':str(p),'name':p.stem,'type':'Cloud','engine':engine,'variant':target+' / '+(arch if target=='mac' else 'x64' if target=='windows' else kind),'bytes':p.stat().st_size,'run_url':url,'outputDirectory':str(dest)} for p in outputs]
                 (dest/'cloud-report.json').write_text(json.dumps(results,indent=2),'utf-8');return results
             except Exception:shutil.rmtree(dest,ignore_errors=True);raise
         except (Cancelled,TimeoutError):
