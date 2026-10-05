@@ -16,7 +16,7 @@ def test_private_upload_poll_download(tmp_path,monkeypatch):
         if path=='/repos/tester/mac-builds':return {'private':True,'default_branch':'main'}
         if '/git/ref/heads/' in path:return {'object':{'sha':'head'}}
         if path.endswith(('/git/blobs','/git/trees','/git/commits')):return {'sha':'new'}
-        if path.endswith('/git/refs'):return {}
+        if path.endswith('/git/refs') or '/git/refs/heads/' in path:return {}
         if '/actions/runs?' in path:return {'workflow_runs':[{'id':1,'status':'completed','conclusion':'success','html_url':'https://github.com/tester/mac-builds/actions/runs/1'}]}
         if path.endswith('/jobs'):return {'jobs':[]}
         if path.endswith('/artifacts'):return {'artifacts':[{'id':2,'name':'macos-output','expired':False}]}

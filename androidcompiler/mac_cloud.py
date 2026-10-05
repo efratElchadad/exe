@@ -89,7 +89,8 @@ class MacCloud:
         for name,content in files.items():tree.append({'path':name,'mode':'100644','type':'blob','sha':self.blob(content)})
         tree_sha=self.api('/repos/'+self.repo+'/git/trees',{'tree':tree})['sha']
         commit=self.api('/repos/'+self.repo+'/git/commits',{'message':'Build macOS application','tree':tree_sha,'parents':[head]})['sha']
-        self.api('/repos/'+self.repo+'/git/refs',{'ref':'refs/heads/'+branch,'sha':commit})
+        self.api('/repos/'+self.repo+'/git/refs',{'ref':'refs/heads/'+branch,'sha':head})
+        self.api('/repos/'+self.repo+'/git/refs/heads/'+branch,{'sha':commit,'force':False},method='PATCH')
         self.runner.log('Source uploaded to private repository: https://github.com/'+self.repo+'/tree/'+branch)
         self.runner.log('Sources remain in GitHub history. Artifacts expire after 7 days. Account Actions quotas apply.')
         start=time.monotonic();last=''

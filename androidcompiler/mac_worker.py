@@ -40,6 +40,11 @@ def main():
         run(exe,cwd=base)
         if not (base/'smoke-result.txt').exists():raise ValueError('Produced application did not execute successfully')
     (base/'artifacts').mkdir(exist_ok=True)
-    run('hdiutil','create','-volname','Application','-srcfolder',out,'-ov','-format','UDZO',base/'artifacts/Application.dmg')
+    # Single-file .NET executables can be sparse; use logical sizes rather than
+    # hdiutil's allocated-block estimate, with filesystem overhead/headroom.
+    logical=sum(p.lstat().st_size for p in out.rglob('*') if not p.is_symlink())
+    size_mb=max(128,(logical*2+1024**2-1)//1024**2+64)
+    print(f'Creating DMG: {logical} logical bytes; {size_mb} MiB capacity',flush=True)
+    run('hdiutil','create','-volname','Application','-fs','HFS+','-size',str(size_mb)+'m','-srcfolder',out,'-ov','-format','UDZO',base/'artifacts/Application.dmg')
     print('MAC_BUILD_COMPLETED',flush=True)
 if __name__=='__main__':main()
