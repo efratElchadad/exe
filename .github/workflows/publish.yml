@@ -50,7 +50,7 @@ jobs:
       - name: Run regression tests on Windows
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python -m pytest -q --junitxml=test-results.xml
+        run: python -m pytest tests -q --junitxml=test-results.xml
       - name: Build and execute real Python and .NET EXEs
         env:
           PYTHONPATH: .
@@ -107,7 +107,11 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: gradle -p android-client :app:connectedDebugAndroidTest --stacktrace
+          script: |
+            gradle -p android-client :app:connectedDebugAndroidTest --stacktrace
+            adb shell am start -W -n com.androidcompiler.mobile/.MainActivity
+            sleep 2
+            adb exec-out screencap -p > android-client/app/build/reports/androidTests/android-screen.png
       - name: Prepare directly installable Preview APK
         run: |
           mkdir -p dist
@@ -136,6 +140,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          mv release/dist/AndroidCompiler.exe release/AndroidCompiler.exe
           cd release
           sha256sum *.exe *.dmg *.apk > SHA256.txt
           gh release create "v0.6.0-preview.${{ github.run_number }}" *.exe *.dmg *.apk SHA256.txt --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "AndroidCompiler 0.6.0 Preview — Windows, Mac & Android" --prerelease --notes-file ../RELEASE-NOTES.md

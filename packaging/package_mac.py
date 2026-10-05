@@ -19,3 +19,12 @@ shutil.move(str(app),str(stage/app.name))
 (stage/'Applications').symlink_to('/Applications',target_is_directory=True)
 arch='arm64' if platform.machine()=='arm64' else 'x64'
 run('hdiutil','create','-volname','AndroidCompiler','-fs','HFS+','-size',str(mb)+'m','-srcfolder',stage,'-ov','-format','UDZO',root/f'dist/AndroidCompiler-Mac-{arch}.dmg')
+
+# Verify the delivered image contains a runnable .app at its root.
+mount=root/'dmg-check';mount.mkdir(exist_ok=True)
+run('hdiutil','attach',root/f'dist/AndroidCompiler-Mac-{arch}.dmg','-nobrowse','-readonly','-mountpoint',mount)
+try:
+    executable=mount/'AndroidCompiler.app/Contents/MacOS/AndroidCompiler'
+    assert executable.is_file(),'DMG must contain the app, not its unpacked contents'
+    run(executable,'--smoke-test')
+finally:run('hdiutil','detach',mount)

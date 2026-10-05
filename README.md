@@ -1,3 +1,9 @@
+# AndroidCompiler 0.6 Preview
+
+Native Android online client, Windows desktop compiler and Mac desktop cloud client. Source projects build into APK, Windows EXE or macOS DMG using the supported Android/Python/.NET engines. Cloud builds require a private GitHub repository and a classic repo/workflow token; Actions quotas and charges apply. No universal source/binary conversion.
+
+See [Hebrew setup and limitations](README-HE.md) and [Android source build instructions](android-client/README.md). Direct installable downloads are attached to Releases.
+
 # AndroidCompiler — Preview 0.2
 
 Windows desktop application for building APK files from supported Android Gradle projects.
